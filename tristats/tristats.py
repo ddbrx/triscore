@@ -9,7 +9,7 @@ RACES_URL = f'{TRISTATS_API_URL}/rus/race'
 RESULTS_URL = f'{TRISTATS_API_URL}/result'
 
 
-def load_url(self, url):
+def load_url(url):
     logger.info(f'loading url {url}')
     r = requests.get(url)
     if r.status_code != 200:

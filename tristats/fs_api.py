@@ -8,7 +8,7 @@ import tristats
 
 RACES_UPDATE_PERIOD_SEC = 86400
 
-logger = log.setup_logger(__name__)
+logger = log.setup_logger(__file__)
 
 
 class FsApi:

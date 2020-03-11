@@ -1,7 +1,7 @@
 import log
 import requests
 
-logger = log.setup_logger(__name__)
+logger = log.setup_logger(__file__)
 
 
 TRISTATS_API_URL = 'http://tristats.ru/api'

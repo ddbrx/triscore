@@ -3,7 +3,7 @@ import os
 from fs_api import FsApi
 import parser
 
-logger = log.setup_logger_from_file(__file__)
+logger = log.setup_logger(__file__)
 
 
 def get_profile_to_score(results, race):

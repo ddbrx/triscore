@@ -4,7 +4,7 @@ import parser
 from mongo_api import MongoApi
 
 
-logger = log.setup_logger_from_file(__file__)
+logger = log.setup_logger(__file__)
 
 TRISCORE_DB = 'triscore-test'
 

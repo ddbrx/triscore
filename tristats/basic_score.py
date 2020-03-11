@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import log
 import os
 from fs_api import FsApi

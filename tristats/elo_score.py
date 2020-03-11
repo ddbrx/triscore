@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import log
 import os
 import parser

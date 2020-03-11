@@ -1,0 +1,30 @@
+# Project folders
+tmp
+tristats/data
+web
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+*.launch
+.settings/
+
+# misc
+bazel-*
+node_modules
+__pycache__
+.ipynb_checkpoints
+.idea
+
+# System Files
+.DS_Store
+Thumbs.db

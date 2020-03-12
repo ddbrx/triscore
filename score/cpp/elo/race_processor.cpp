@@ -42,13 +42,13 @@ double GetContestantMultiplier(const Contestant& contestant) {
 
 }  // namespace
 
-RaceProcessor::RaceProcessor(const std::vector<UserHistory>& user_histories) {
-  for (const auto& user_history : user_histories) {
-    user_histories_.push_back(user_history);
-    profile_to_it_.emplace(user_history.athlete.profile, GetLastInsertedIt(user_histories_));
-    auto& rating_changes = user_history.rating_changes;
-    if (!rating_changes.empty()) {
-      last_processed_date_ = max(last_processed_date_, rating_changes.back().race_info.date);
+RaceProcessor::RaceProcessor(const std::vector<AthleteHistory>& athlete_histories) {
+  for (const auto& athlete_history : athlete_histories) {
+    athlete_histories_.push_back(athlete_history);
+    profile_to_it_.emplace(athlete_history.athlete.profile, GetLastInsertedIt(athlete_histories_));
+    auto& races = athlete_history.races;
+    if (!races.empty()) {
+      last_processed_date_ = max(last_processed_date_, races.back().race_info.date);
     }
   }
 }
@@ -57,6 +57,7 @@ void RaceProcessor::Process(const tristats::Race& race) {
   if (race.info.date < last_processed_date_) {
     std::cerr << "invalid race date: " << race.info.date << " < " << last_processed_date_
               << std::endl;
+    assert(false);
     return;
   }
 
@@ -71,14 +72,14 @@ void RaceProcessor::Process(const tristats::Race& race) {
     const auto& contestant = profile_to_contestant[result.athlete.profile];
     auto map_it = profile_to_it_.find(result.athlete.profile);
     if (map_it == profile_to_it_.end()) {
-      user_histories_.push_back(UserHistory{kStartRating, result.athlete, {}});
-      auto it = user_histories_.end();
+      athlete_histories_.push_back(AthleteHistory{kStartRating, result.athlete, {}});
+      auto it = athlete_histories_.end();
       --it;
       map_it = profile_to_it_.emplace(result.athlete.profile, it).first;
     }
     auto& it = map_it->second;
     it->rating += contestant.delta;
-    it->rating_changes.push_back({race.info, contestant});
+    it->races.push_back({race.info, contestant});
   }
 }
 
@@ -94,16 +95,15 @@ std::unordered_map<std::string, Contestant> RaceProcessor::CalculateRatingChange
     const auto& athlete = race_result.athlete;
     const auto& profile = athlete.profile;
     auto rating = GetCurrentRating(profile);
-    auto race_number = GetCompetitionCount(profile) + 1;
 
     division_to_contestants[athlete.division].emplace_back(
-        profile, athlete.division, race_number, rating, race_result.timing.finish,
+        profile, athlete.division, rating, race_result.timing,
         /*group_size =*/0, /*rank =*/0., /*seed =*/0., /*delta =*/0);
   }
 
   for (auto& [division, contestants] : division_to_contestants) {
     auto group_size = static_cast<int>(contestants.size());
-    auto finish_diff = contestants.back().finish - contestants.front().finish;
+    auto finish_diff = contestants.back().timing.finish - contestants.front().timing.finish;
     for (auto& contestant : contestants) {
       double seed = 1.;
       for (const auto& other_contestant : contestants) {
@@ -116,14 +116,16 @@ std::unordered_map<std::string, Contestant> RaceProcessor::CalculateRatingChange
       contestant.group_size = group_size;
       contestant.rank = 1.;
       if (finish_diff > 0) {
-        contestant.rank +=
-            1. * (group_size - 1) * (contestant.finish - contestants.front().finish) / finish_diff;
+        contestant.rank += 1. * (group_size - 1) *
+                           (contestant.timing.finish - contestants.front().timing.finish) /
+                           finish_diff;
       }
 
       contestant.seed = seed;
 
       auto rel_rank = group_size > 1 ? (contestant.seed - contestant.rank) / (group_size - 1) : 0.;
-      contestant.delta = std::round(GetContestantMultiplier(contestant) * race_type_multiplier * rel_rank);
+      contestant.delta =
+          std::round(GetContestantMultiplier(contestant) * race_type_multiplier * rel_rank);
       profile_to_contestant[contestant.profile] = contestant;
     }
   }
@@ -137,14 +139,6 @@ int RaceProcessor::GetCurrentRating(const std::string& profile) {
     return kStartRating;
   }
   return map_it->second->rating;
-}
-
-int RaceProcessor::GetCompetitionCount(const std::string& profile) {
-  auto map_it = profile_to_it_.find(profile);
-  if (map_it == profile_to_it_.end()) {
-    return 0;
-  }
-  return static_cast<int>(map_it->second->rating_changes.size());
 }
 
 // int RaceProcessor::GetRatingToRank(const std::vector<Contestant>& contestants,

@@ -18,7 +18,7 @@ def main():
     score_table = {}
     max_count = 1
 
-    for i, race in enumerate(api.get_races(acsending=True)):
+    for i, race in enumerate(api.get_races(ascending=True)):
         if i == max_count:
             logger.info(f'stopping by max count: {max_count}')
             break

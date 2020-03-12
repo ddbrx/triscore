@@ -6,9 +6,8 @@
 namespace tristats {
 
 struct Athlete {
-  int id;
   std::string profile;
-  // TODO: add name
+  std::string name;
   std::string division;
   std::string country;
   std::string sex;
@@ -23,18 +22,24 @@ struct Timing {
   int finish;
 };
 
-struct Rank {
-  int total_rank;
-  int division_rank;
-};
-
 struct RaceResult {
   Athlete athlete;
   Timing timing;
-  Rank rank;
 };
 
 enum class RaceType : uint8_t { Supersprint, Sprint, Olympic, Half, Full };
+
+struct RaceInfo {
+  std::string name;
+  std::string date;
+  std::string url;
+  RaceType type;
+};
+
+struct Race {
+  RaceInfo info;
+  std::vector<RaceResult> results;
+};
 
 inline std::optional<RaceType> FromString(const std::string& type_str) {
   if (type_str == "supersprint") {
@@ -71,31 +76,11 @@ inline std::ostream& operator<<(std::ostream& os, RaceType race_type) {
   return os;
 }
 
-// inline std::ostream& operator<<(std::ostream& os, RaceType race_type) {
-//   switch (race_type) {
-//     case RaceType::Supersprint:
-//       return os << "supersprint";
-//     case RaceType::Sprint:
-//       return os << "sprint";
-//     case RaceType::Olympic:
-//       return os << "olympic";
-//     case RaceType::Half:
-//       return os << "half";
-//     case RaceType::Full:
-//       return os << "full";
-//   }
-// }
-
-struct RaceInfo {
-  std::string name;
-  std::string date;
-  std::string url;
-  RaceType type;
-};
-
-struct Race {
-  RaceInfo info;
-  std::vector<RaceResult> results;
-};
+inline std::ostream& operator<<(std::ostream& os, Timing timing) {
+  return os << "{"
+            << " swim: " << timing.swim << " t1: " << timing.t1 << " bike: " << timing.bike
+            << " t2: " << timing.t2 << " run: " << timing.run << " finish: " << timing.finish
+            << " }";
+}
 
 }  // namespace tristats

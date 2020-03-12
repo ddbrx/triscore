@@ -1,9 +1,10 @@
 import argparse
-import dt
 import json
-import log
 import os
-import tristats
+
+import dt
+import log
+import tristats_api
 
 
 RACES_UPDATE_PERIOD_SEC = 86400
@@ -12,17 +13,23 @@ logger = log.setup_logger(__file__)
 
 
 class FsApi:
-    def get_races_json(self, acsending=True):
-        races_cache_file = self._get_races_cache_file()
-        return self._load_json(tristats.RACES_URL, races_cache_file, reverse=acsending)
+    def get_races(self, ascending=True):
+        races_json = self.get_races_json(ascending=ascending)
+        total_races = len(races_json)
+        for race in races_json:
+            yield race, total_races
 
-    def get_results_json(self, race_url, race_date):
+    def get_races_json(self, ascending=True):
+        races_cache_file = self._get_races_cache_file()
+        return self._load_json(tristats_api.RACES_URL, races_cache_file, reverse=ascending)
+
+    def get_results_json(self, race):
         race_yyyymmdd = dt.datetime_to_string(
-            dt.datetime_from_string(race_date), format='%Y-%m-%d')
-        race_url_stripped = race_url.strip('/')
+            dt.datetime_from_string(race['Date']), format='%Y-%m-%d')
+        race_url_stripped = race['RaceUrl'].strip('/')
         results_cache_file = os.path.join(
             'data', 'results', race_url_stripped, f'{race_yyyymmdd}.json')
-        results_url = f"{tristats.RESULTS_URL}/{race_url_stripped}"
+        results_url = f"{tristats_api.RESULTS_URL}/{race_url_stripped}"
         return self._load_json(results_url, results_cache_file)
 
     def _get_races_cache_file(self):
@@ -62,7 +69,7 @@ class FsApi:
 
     def _load_text(self, url, cache_file):
         if not os.path.exists(cache_file) or os.stat(cache_file).st_size == 0:
-            text = tristats.load_url(url)
+            text = tristats_api.load_url(url)
             self._write_file(text, cache_file)
             return text
 
@@ -70,7 +77,8 @@ class FsApi:
 
     def _write_file(self, text, file):
         logger.debug(f'writing to file: {file}')
-        os.makedirs(os.path.dirname(file))
+        dir = os.path.dirname(file)
+        os.makedirs(dir, exist_ok=True)
         with open(file, 'w') as f:
             f.write(text)
 

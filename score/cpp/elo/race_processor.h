@@ -10,13 +10,12 @@ namespace elo {
 
 struct Contestant {
   Contestant() = default;
-  Contestant(std::string profile, std::string division, int race_number, int rating, int finish,
+  Contestant(std::string profile, std::string division, int rating, tristats::Timing timing,
              int group_size, double rank, double seed, int delta)
       : profile{std::move(profile)},
         division{std::move(division)},
-        race_number{race_number},
         rating{rating},
-        finish{finish},
+        timing{std::move(timing)},
         group_size{group_size},
         rank{rank},
         seed{seed},
@@ -24,9 +23,8 @@ struct Contestant {
 
   std::string profile;
   std::string division;
-  int race_number;
   int rating;
-  int finish;
+  tristats::Timing timing;
   int group_size;
   double rank;
   double seed;
@@ -35,10 +33,10 @@ struct Contestant {
 
 inline std::ostream& operator<<(std::ostream& os, const Contestant& contestant) {
   return os << "{"
-            << " profile: " << contestant.profile << " race_number: " << contestant.race_number
-            << " rating: " << contestant.rating << " finish: " << contestant.finish
-            << " group_size: " << contestant.group_size << " rank: " << contestant.rank
-            << " seed: " << contestant.seed << " delta: " << contestant.delta << " }";
+            << " profile: " << contestant.profile << " rating: " << contestant.rating
+            << " timing: " << contestant.timing << " group_size: " << contestant.group_size
+            << " rank: " << contestant.rank << " seed: " << contestant.seed
+            << " delta: " << contestant.delta << " }";
 }
 
 struct RatingChange {
@@ -49,28 +47,27 @@ struct RatingChange {
   Contestant contestant;
 };
 
-struct UserHistory {
+struct AthleteHistory {
   int rating;
   tristats::Athlete athlete;
-  std::vector<RatingChange> rating_changes;  // TODO: rename to races
+  std::vector<RatingChange> races;
 };
 
 class RaceProcessor {
  public:
   RaceProcessor() = default;
-  RaceProcessor(const std::vector<UserHistory>& user_histories);
+  RaceProcessor(const std::vector<AthleteHistory>& athlete_histories);
 
   void Process(const tristats::Race& race);
 
-  std::vector<UserHistory> GetUserHistories() {
-    return std::vector<UserHistory>{user_histories_.begin(), user_histories_.end()};
+  std::vector<AthleteHistory> GetUserHistories() {
+    return std::vector<AthleteHistory>{athlete_histories_.begin(), athlete_histories_.end()};
   }
 
  private:
   std::unordered_map<std::string, Contestant> CalculateRatingChanges(const tristats::Race& race);
 
   int GetCurrentRating(const std::string& profile);
-  int GetCompetitionCount(const std::string& profile);
 
   // int GetRatingToRank(const std::vector<Contestant>& contestants, const Contestant& contestant,
   //                     double rank);
@@ -79,8 +76,8 @@ class RaceProcessor {
   // void ValidateDeltas(const std::vector<Contestant>& contestants);
 
   std::string last_processed_date_;
-  std::list<UserHistory> user_histories_;
-  std::unordered_map<std::string, std::list<UserHistory>::iterator> profile_to_it_;
+  std::list<AthleteHistory> athlete_histories_;
+  std::unordered_map<std::string, std::list<AthleteHistory>::iterator> profile_to_it_;
 };
 
 }  // namespace elo

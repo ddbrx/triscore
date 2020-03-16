@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-import log
-import os
-from fs_api import FsApi
-import parser
 import json
-import utils
+import os
+
+from base import log, utils
+import fs_api
+import parser
+
 
 logger = log.setup_logger(__file__)
 
 
 def main():
-    api = FsApi()
+    api = fs_api.FsApi()
     races = api.get_races_json(ascending=True)
 
     score_table = {}
@@ -43,7 +44,8 @@ def main():
     utils.print_dicts(sorted(summaries, key=lambda item: -item['total_races']))
 
     print('=== by total participants')
-    utils.print_dicts(sorted(summaries, key=lambda item: -item['total_participants']))
+    utils.print_dicts(
+        sorted(summaries, key=lambda item: -item['total_participants']))
 
 
 if __name__ == '__main__':

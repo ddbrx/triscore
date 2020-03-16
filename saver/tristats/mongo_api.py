@@ -1,16 +1,16 @@
 import argparse
 import json
 import os
-
+import re
 from pymongo import MongoClient, ASCENDING, DESCENDING
 
-import dt
-import log
-import tristats_api
+from base import dt, log
+from . import tristats_api
 
 
 RACES_UPDATE_PERIOD_SEC = 86400 * 10
 # RACES_UPDATE_PERIOD_SEC = 60
+MAX_ATHLETES_LIMIT = 100 * 1000 * 1000
 
 logger = log.setup_logger(__file__)
 
@@ -24,16 +24,86 @@ class MongoApi:
     def get_races(self, ascending=True):
         self._update_races_if_needed()
         count = self.db.races.count()
-        return (self.db.races.find(sort=[('Date', ASCENDING if ascending else DESCENDING)]), count)
+        return self.db.races.find(sort=[('Date', ASCENDING if ascending else DESCENDING)]), count
 
     def get_races_json(self, ascending=True):
-        races_json = []
-        for race in self.get_races(ascending=ascending):
-            races_json.append(race)
-        return races_json
+        return [race for race in self.get_races(ascending=ascending)]
 
     def get_results_json(self, race):
         return race['Results']
+
+    def get_top_athletes(self, name_filter='', country='', sort_field='rating', sort_order=DESCENDING, skip=0, limit=0):
+        projection = {'_id': 0, 'history': 0, 'prefixes': 0}
+        sort = [(sort_field, sort_order)]
+
+        where = {}
+        if country:
+            where['country'] = country
+# '$and': [{'$text': {'$search': 'jan'}}, {'country': 'RUS'}]}
+
+        query = {}
+        name_filter = name_filter.strip()
+        if name_filter:
+            is_complex_filter = name_filter.find(' ') != -1
+            if is_complex_filter:
+                # search for whole sentence
+                name_filter = f'\"{name_filter}\"'
+
+            query['$and'] = [
+                {'$text': {'$search': name_filter}},
+                where
+            ]
+        else:
+            query = where
+
+        logger.debug(f'query: \'{query}\'')
+        return self.db.scores.find(
+            query,
+            sort=sort,
+            projection=projection
+        ).skip(skip).limit(limit)
+
+    def get_athletes(self, profiles=[]):
+        where = {}
+        if len(profiles) > 0:
+            where = {'profile': {'$in': profiles}}
+        return self.db.scores.find(where)
+
+    def profile_exists(self, profile):
+        return self.db.scores.count({'profile': profile})
+
+    def add_athlete(self, athlete):
+        self.db.scores.insert_one(athlete)
+
+    def update_athlete(self, profile, race_summary, rating, races):
+        self.db.scores.update_one(
+            {'profile': profile},
+            {
+                '$set': {'rating': rating, 'races': races},
+                '$push': {'history': race_summary}
+            }
+        )
+        # self.db.scores.update_one(
+        #     {'profile': profile}, {'$push': {'history': race_summary}})
+
+    def update_athlete_field(self, profile, field, value):
+        self.db.scores.update_one(
+            {'profile': profile},
+            {
+                '$set': {field: value}
+            }
+        )
+
+    def push_athlete_array_field(self, profile, field, single_value_or_list):
+        value_clause = single_value_or_list
+        if isinstance(single_value_or_list, list):
+            value_clause = {'$each': single_value_or_list}
+        self.db.scores.update_one(
+            {'profile': profile},
+            {
+                '$push': {field: value_clause}
+            }
+        )
 
     def _update_races_if_needed(self):
         delta = dt.now() - self._get_last_races_update_dt()
@@ -79,10 +149,63 @@ class MongoApi:
         self.db.meta.insert_one(meta_item)
 
     def _create_mongo_indices(self):
+        self._create_race_indices()
+        self._create_score_indices()
+
+    def _create_race_indices(self):
         self.db.races.create_index('RaceUrl', unique=True)
-        self.db.races.create_index('RaceCountry')
         self.db.races.create_index([('Date', ASCENDING)])
+        self.db.races.create_index('RaceCountry')
+
+    def _create_score_indices(self):
+        self.db.scores.create_index('profile', unique=True)
+        self.db.scores.create_index([('rating', DESCENDING)])
+        self.db.scores.create_index('name')
+        self.db.scores.create_index('country')
+        self.db.scores.create_index('gender')
 
     def _load_json(self, url):
         text = tristats_api.load_url(url)
         return json.loads(text) if text else {}
+
+
+class ReadOnlyApi:
+    def __init__(self, dbname='triscore-test'):
+        self.read_only_mongo_api = MongoApi(dbname)
+        self.athlete_by_profile = {}
+
+    def get_races(self, ascending=True):
+        return self.read_only_mongo_api.get_races(ascending)
+
+    def get_races_json(self, ascending=True):
+        return self.read_only_mongo_api.get_races_json(ascending)
+
+    def get_results_json(self, race):
+        return self.read_only_mongo_api.get_results_json(race)
+
+    def get_top_athletes(self, limit=MAX_ATHLETES_LIMIT):
+        return sorted(
+            list(self.athlete_by_profile.values()), key=lambda item: -item['rating'])[0:limit]
+
+    def get_athletes(self, profiles):
+        athletes = []
+        for profile in profiles:
+            if profile in self.athlete_by_profile:
+                athletes.append(self.athlete_by_profile[profile])
+        return athletes
+
+    def profile_exists(self, profile):
+        return profile in self.athlete_by_profile
+
+    def add_athlete(self, athlete):
+        profile = athlete['profile']
+        assert profile not in self.athlete_by_profile, f'duplicated profile: {profile}'
+        self.athlete_by_profile[profile] = athlete
+
+    def add_athlete_race_summary(self, profile, race_summary):
+        assert profile in self.athlete_by_profile, f'profile not found: {profile}'
+        new_rating = race_summary['rating_after']
+
+        self.athlete_by_profile[profile]['rating'] = new_rating
+        self.athlete_by_profile[profile]['races'] += 1
+        self.athlete_by_profile[profile]['history'].append(race_summary)

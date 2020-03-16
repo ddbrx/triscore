@@ -2,14 +2,14 @@ import argparse
 import json
 import os
 
-import dt
-import log
-import tristats_api
+from base import dt, log
+from . import tristats_api
 
 
 RACES_UPDATE_PERIOD_SEC = 86400
 
 logger = log.setup_logger(__file__)
+SCRIPT_DIR = os.path.dirname(__file__)
 
 
 class FsApi:
@@ -21,6 +21,7 @@ class FsApi:
 
     def get_races_json(self, ascending=True):
         races_cache_file = self._get_races_cache_file()
+        logger.info(f'races file: {races_cache_file}')
         return self._load_json(tristats_api.RACES_URL, races_cache_file, reverse=ascending)
 
     def get_results_json(self, race):
@@ -28,7 +29,7 @@ class FsApi:
             dt.datetime_from_string(race['Date']), format='%Y-%m-%d')
         race_url_stripped = race['RaceUrl'].strip('/')
         results_cache_file = os.path.join(
-            'data', 'results', race_url_stripped, f'{race_yyyymmdd}.json')
+            self._get_results_dir(), race_url_stripped, f'{race_yyyymmdd}.json')
         results_url = f"{tristats_api.RESULTS_URL}/{race_url_stripped}"
         return self._load_json(results_url, results_cache_file)
 
@@ -42,7 +43,10 @@ class FsApi:
             self._get_races_dir(), dt.datetime_to_string(cache_dt) + '.json')
 
     def _get_races_dir(self):
-        return os.path.join('data', 'races')
+        return os.path.join(SCRIPT_DIR, 'data', 'races')
+
+    def _get_results_dir(self):
+        return os.path.join(SCRIPT_DIR, 'data', 'results')
 
     def _get_last_races_update_dt(self):
         races_dir = self._get_races_dir()

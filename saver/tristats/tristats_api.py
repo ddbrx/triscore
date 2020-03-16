@@ -1,5 +1,5 @@
-import log
 import requests
+from base import log
 
 logger = log.setup_logger(__file__)
 

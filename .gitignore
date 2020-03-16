@@ -1,7 +1,7 @@
 # Project folders
 tmp
-saver/tristats/data
-web/ng
+data
+web
 
 # IDE - VSCode
 .vscode/*

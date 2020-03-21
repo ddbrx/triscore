@@ -1,7 +1,6 @@
 # Project folders
-tmp
 data
-web
+tmp
 
 # IDE - VSCode
 .vscode/*

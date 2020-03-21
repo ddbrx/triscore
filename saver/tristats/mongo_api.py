@@ -32,25 +32,24 @@ class MongoApi:
     def get_results_json(self, race):
         return race['Results']
 
-    def get_top_athletes(self, name_filter='', country='', sort_field='rating', sort_order=DESCENDING, skip=0, limit=0):
+    def get_top_athletes(self, name='', country='', sort_field='rating', sort_order=DESCENDING, skip=0, limit=0):
         projection = {'_id': 0, 'history': 0, 'prefixes': 0}
-        sort = [(sort_field, sort_order)]
+        sort = [(sort_field, sort_order), ('rating', sort_order)]
 
         where = {}
         if country:
             where['country'] = country
-# '$and': [{'$text': {'$search': 'jan'}}, {'country': 'RUS'}]}
 
         query = {}
-        name_filter = name_filter.strip()
-        if name_filter:
-            is_complex_filter = name_filter.find(' ') != -1
+        name = name.strip()
+        if name:
+            is_complex_filter = name.find(' ') != -1
             if is_complex_filter:
-                # search for whole sentence
-                name_filter = f'\"{name_filter}\"'
+                # exact search
+                name = f'\"{name}\"'
 
             query['$and'] = [
-                {'$text': {'$search': name_filter}},
+                {'$text': {'$search': name}},
                 where
             ]
         else:
@@ -63,11 +62,17 @@ class MongoApi:
             projection=projection
         ).skip(skip).limit(limit)
 
+    def find_athlete(self, profile):
+        where = {'profile': profile}
+        projection = {'prefixes': 0, '_id': 0}
+        return self.db.scores.find_one(where, projection=projection)
+
     def get_athletes(self, profiles=[]):
         where = {}
         if len(profiles) > 0:
             where = {'profile': {'$in': profiles}}
-        return self.db.scores.find(where)
+        projection = {'prefixes': 0, '_id': 0}
+        return self.db.scores.find(where, projection=projection)
 
     def profile_exists(self, profile):
         return self.db.scores.count({'profile': profile})
@@ -160,8 +165,9 @@ class MongoApi:
     def _create_score_indices(self):
         self.db.scores.create_index('profile', unique=True)
         self.db.scores.create_index([('rating', DESCENDING)])
+        self.db.scores.create_index([('races', DESCENDING), ('rating', DESCENDING)])
         self.db.scores.create_index('name')
-        self.db.scores.create_index('country')
+        self.db.scores.create_index([('country', DESCENDING), ('rating', DESCENDING)])
         self.db.scores.create_index('gender')
 
     def _load_json(self, url):

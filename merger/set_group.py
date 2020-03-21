@@ -16,8 +16,9 @@ def set_group():
     cursor = api.get_athletes()
     count = cursor.count()
     for i, athlete in enumerate(cursor):
-        logger.info(f'{i + 1}/{count}: {athlete}')
+        athlete_profile = athlete['profile']
         last_group = athlete['history'][-1]['group'].upper()
+        logger.info(f'{i + 1}/{count}: {athlete_profile} {last_group}')
         api.update_athlete_field(athlete['profile'], 'group', last_group)
 
 

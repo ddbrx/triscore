@@ -2,6 +2,10 @@ UNKNOWN_PROFILE = 'unknown'
 UNKNOWN_RACER = 'unknown'
 
 
+def get_brand(race):
+    return get_race_url(race).split('/')[1]
+
+
 def get_value_or(item, field, default):
     if field not in item or not item[field]:
         return default
@@ -12,12 +16,20 @@ def get_race_country(race):
     return race['RaceCountry']
 
 
+def get_racer_count(race):
+    return race['RacerCount']
+
+
 def get_race_date(race):
     return race['Date']
 
 
 def get_race_name(race):
     return race['RaceName']
+
+
+def get_race_url(race):
+    return race['RaceUrl']
 
 
 def get_race_type(race):

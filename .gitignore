@@ -1,6 +1,6 @@
-# Project folders
-data
-tmp
+# Project data folders
+.cache
+.tmp
 
 # IDE - VSCode
 .vscode/*

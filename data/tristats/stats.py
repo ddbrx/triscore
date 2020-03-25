@@ -1,32 +1,25 @@
 #!/usr/bin/env python3
-import json
-import os
-
 from base import log, utils
-import fs_api
+from data.storage import DataStorage
 import parser
-
 
 logger = log.setup_logger(__file__)
 
 
 def main():
-    api = fs_api.FsApi()
-    races = api.get_races_json(ascending=True)
+    storage = DataStorage(collection_name='tristats')
 
-    score_table = {}
+    races = storage.find(projection={"data": 0})
+    count = races.count()
+
     max_count = -1
-
     brand_to_races = {}
     for i, race in enumerate(races):
         if i == max_count:
             logger.info(f'stopping by max count: {max_count}')
             break
 
-        race_url = race['RaceUrl']
-        logger.info(f'{i + 1}/{len(races)}: {race_url}')
-
-        brand = race_url.split('/')[1]
+        brand = parser.get_brand(race)
         if brand not in brand_to_races:
             brand_to_races[brand] = []
 
@@ -35,7 +28,8 @@ def main():
     summaries = []
     for i, (brand, races) in enumerate(brand_to_races.items()):
         total_races = len(races)
-        total_participants = sum(race['RacerCount'] for race in races)
+        total_participants = sum(parser.get_racer_count(race)
+                                 for race in races)
         summaries.append({'brand': brand,
                           'total_races': total_races,
                           'total_participants': total_participants})

@@ -10,3 +10,12 @@ def print_dicts(ds, lj=20, filter_keys=[]):
         values = [d[key] for key in keys]
         line = ' '.join([str(value).ljust(lj) for value in values])
         print(line)
+
+
+def get_subsentences(sentence):
+    words = sentence.strip().split()
+    subsentences = []
+    for length in reversed(range(1, len(words) + 1)):
+        for i in range(0, len(words) + 1 - length):
+            subsentences.append(' '.join(words[i:i + length]))
+    return subsentences

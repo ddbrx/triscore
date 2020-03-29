@@ -24,16 +24,22 @@ class DataStorage:
     URL_FIELD = 'url'
     DATA_FIELD = 'data'
     PROCESSED_FIELD = 'processed'
+    INVALID_FIELD = 'invalid'
 
-    def __init__(self, collection_name, db_name='data'):
+    def __init__(self, collection_name, db_name='data', indices=[]):
         self.db_name = db_name
         self.collection_name = collection_name
 
         self.mongo_client = MongoClient()
         self.data_collection = self.mongo_client[db_name][collection_name]
+        for index in indices:
+            self.data_collection.create_index(index)
 
-    def find(self, where={}, projection=None, sort=None):
-        return self.data_collection.find(where, projection=projection, sort=sort)
+    def find(self, where={}, projection=None, sort=None, skip=0, limit=0):
+        return self.data_collection.find(where, projection=projection, sort=sort).skip(skip).limit(limit)
+
+    def find_one(self, where={}, projection=None, sort=None):
+        return self.data_collection.find_one(where, projection=projection, sort=sort)
 
     def update(self,
                id_fields,
@@ -43,6 +49,7 @@ class DataStorage:
                list_filter=empty_filter,
                data_url_field=None,
                data_url_transformer=None,
+               add_invalid=False,
                dry_run=True,
                limit=-1):
 
@@ -86,14 +93,17 @@ class DataStorage:
                 data_json = http.get_json(data_url)
                 item[self.DATA_FIELD] = data_json[data_url_field] if data_url_field else data_json
                 item[self.URL_FIELD] = data_url
+                sleep(1)
 
             item[self.PROCESSED_FIELD] = False
+
+            if add_invalid:
+                item[self.INVALID_FIELD] = False
 
             if dry_run:
                 logger.info(f'DRY RUN: item {data_id} inserted')
             else:
                 insert_result = self.data_collection.insert_one(item)
                 inserted_ids.append(str(insert_result.inserted_id))
-                sleep(1)
 
         return inserted_ids

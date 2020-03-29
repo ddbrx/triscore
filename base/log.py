@@ -2,7 +2,7 @@ import logging
 import os
 
 
-def setup_logger(filename, level=logging.DEBUG):
+def setup_logger(filename, debug=False):
     name = os.path.splitext(os.path.basename(filename))[0]
 
     formatter = logging.Formatter(
@@ -12,7 +12,7 @@ def setup_logger(filename, level=logging.DEBUG):
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
-    logger.setLevel(level)
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
     logger.addHandler(handler)
 
     return logger

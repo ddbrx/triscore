@@ -2,15 +2,15 @@
 import argparse
 
 from base import log
-from score.api import ScoreApi
+from score.storage import ScoreStorage
 
 
 logger = log.setup_logger(__file__)
 
 
-def get_rating_and_race_count(athletes):
+def get_score_and_race_count(athletes):
     for athlete in athletes:
-        yield int(athlete["rating"]), int(athlete["races"])
+        yield int(athlete['s']), int(athlete['p'])
 
 
 def print_distribution(athletes):
@@ -23,8 +23,8 @@ def print_distribution(athletes):
         print(
             f'[{index * 100}, {(index + 1)*100}) count: {count} races: {median_races}')
 
-    for rating, race_count in get_rating_and_race_count(athletes):
-        index = int(rating / 100)
+    for score, race_count in get_score_and_race_count(athletes):
+        index = int(score / 100)
         if prev_index == -1:
             prev_index = index
 
@@ -46,8 +46,8 @@ def main():
 
     logger.info('args: {}'.format(args))
 
-    score_api = ScoreApi()
-    athletes = score_api.get_top_athletes(
+    score_storage = ScoreStorage()
+    athletes = score_storage.get_top_athletes(
         country=args.country, limit=args.limit)
     print_distribution(athletes)
 

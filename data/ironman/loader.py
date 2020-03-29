@@ -39,11 +39,12 @@ def main():
         list_url=url.RACES_URL,
         list_update_frequency_sec=UPDATE_FREQUENCY_SEC,
         list_transformer=first_item_transformer,
-        list_filter=ironman_and_t5150_filter,
+        list_filter=ironman_filter,
         data_url_field='data',
         data_url_transformer=get_data_url,
         dry_run=False,
-        limit=4)
+        add_invalid=True,
+        limit=10)
     logger.info(f'{len(updated_ids)} items updated')
 
 

@@ -4,7 +4,6 @@ import json
 import time
 
 from flask import Flask, request
-from flask_restful import Api, Resource
 
 from base import log
 from race.storage import RaceStorage
@@ -16,9 +15,6 @@ app = Flask(__name__)
 
 race_storage = RaceStorage(collection_name='races')
 score_storage = ScoreStorage(collection_name='scores')
-# score_storage = ScoreStorage(collection_name='scores-C-1-D-2')
-# score_storage = ScoreStorage(collection_name='scores-C-2-D-1')
-# score_storage = ScoreStorage(collection_name='scores-C-2-D-2')
 
 
 def add_qrank(iterable, start_rank):
@@ -161,4 +157,5 @@ def athlete_details():
     return athletes[0] if len(athletes) == 1 else {}, 200
 
 
-app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)

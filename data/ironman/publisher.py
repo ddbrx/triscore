@@ -60,28 +60,57 @@ def get_ranks_by_legs(race_results, count_by_age_group, count_by_gender):
     gender_rank = {}
     overall_rank = {}
 
+    time_age_rank = {}
+    time_gender_rank = {}
+    time_overall_rank = {}
+
     LAST_EQUAL_RANK = '__last_equal_rank'
     LAST_RANK = '__last_rank'
     LAST_TIME = '__last_time'
     total_count = len(race_results)
 
     for leg in parser.LEG_NAMES:
+        min_leg_time = {}
+        max_leg_time = {}
+
         age_rank[leg] = {}
         gender_rank[leg] = {}
         overall_rank[leg] = {}
 
         logger.debug(f'========= LEG: {leg}')
+
         last_leg_time = 0
         for i, race_result in enumerate(get_sorted_results(race_results, sort_by=f'{leg}Time')):
             age = parser.get_age_group(race_result)
             gender = parser.get_gender(race_result)
             contact_id = parser.get_contact_id(race_result)
             leg_time = parser.get_leg_time(race_result, leg)
-
             athlete_name = parser.get_athlete_name(race_result)
 
+            if age not in min_leg_time:
+                min_leg_time[age] = builder.MAX_TIME
+                max_leg_time[age] = 0
+
+            if gender not in min_leg_time:
+                min_leg_time[gender] = builder.MAX_TIME
+                max_leg_time[gender] = 0
+
+            if 'overall' not in min_leg_time:
+                min_leg_time['overall'] = builder.MAX_TIME
+                max_leg_time['overall'] = 0
+
+            min_leg_time[age] = min(min_leg_time[age], leg_time)
+            min_leg_time[gender] = min(min_leg_time[gender], leg_time)
+            min_leg_time['overall'] = min(min_leg_time['overall'], leg_time)
+
             assert leg_time >= last_leg_time, f'descending leg time: {leg_time} last: {last_leg_time} result: {race_result}'
+
             if leg_time != builder.MAX_TIME:
+                max_leg_time[age] = max(max_leg_time[age], leg_time)
+                max_leg_time[gender] = max(max_leg_time[gender], leg_time)
+                max_leg_time['overall'] = max(
+                    max_leg_time['overall'], leg_time)
+
                 age_time_key = age + LAST_TIME
                 age_rank_key = age + LAST_RANK
                 age_equal_rank_key = age + LAST_EQUAL_RANK
@@ -137,7 +166,51 @@ def get_ranks_by_legs(race_results, count_by_age_group, count_by_gender):
 
             last_leg_time = leg_time
 
-    return age_rank, gender_rank, overall_rank
+        time_age_rank[leg] = {}
+        time_gender_rank[leg] = {}
+        time_overall_rank[leg] = {}
+
+        for race_result in race_results:
+            age = parser.get_age_group(race_result)
+            gender = parser.get_gender(race_result)
+            contact_id = parser.get_contact_id(race_result)
+            leg_time = parser.get_leg_time(race_result, leg)
+            if leg_time != builder.MAX_TIME:
+                time_age_rank[leg][contact_id] = 1.
+                min_age_time = min_leg_time[age]
+                max_age_time = max_leg_time[age]
+                assert max_age_time != 0, f'invalid max_age_time: {max_age_time}'
+                if min_age_time != max_age_time:
+                    time_age_rank[leg][contact_id] += \
+                        1. * (count_by_age_group[age] - 1) * \
+                        (leg_time - min_age_time) / \
+                        (max_age_time - min_age_time)
+
+                time_gender_rank[leg][contact_id] = 1.
+                min_gender_time = min_leg_time[gender]
+                max_gender_time = max_leg_time[gender]
+                assert max_gender_time != 0, f'invalid max_gender_time: {max_gender_time}'
+                if min_gender_time != max_gender_time:
+                    time_gender_rank[leg][contact_id] += \
+                        1. * (count_by_gender[gender] - 1) * \
+                        (leg_time - min_gender_time) / \
+                        (max_gender_time - min_gender_time)
+
+                time_overall_rank[leg][contact_id] = 1.
+                min_overall_time = min_leg_time['overall']
+                max_overall_time = max_leg_time['overall']
+                assert max_overall_time != 0, f'invalid max_overall_time: {max_overall_time}'
+                if min_overall_time != max_overall_time:
+                    time_overall_rank[leg][contact_id] += \
+                        1. * (total_count - 1) * \
+                        (leg_time - min_overall_time) / \
+                        (max_overall_time - min_overall_time)
+            else:
+                time_age_rank[leg][contact_id] = count_by_age_group[age]
+                time_gender_rank[leg][contact_id] = count_by_gender[gender]
+                time_overall_rank[leg][contact_id] = total_count
+
+    return age_rank, gender_rank, overall_rank, time_age_rank, time_gender_rank, time_overall_rank
 
 
 def filter_result_duplicates(race_results):
@@ -209,10 +282,6 @@ def publish_ironman_data(start_index, limit, dry_run, collection, db):
             logger.info(f'skip not ironman series race: {race_full_name}')
             continue
 
-        if race_storage.has_race(name=race_full_name):
-            logger.info(f'skip existing race: {race_full_name}')
-            continue
-
         obstri_race = obstri_matcher.find_race(race_full_name)
         if not obstri_race:
             logger.warning(
@@ -221,12 +290,18 @@ def publish_ironman_data(start_index, limit, dry_run, collection, db):
             continue
 
         race_date = obstri_race['d']
+        race_name_no_year = parser.get_race_name_no_year(race_full_name)
+        if race_storage.has_race(name=race_name_no_year, date=race_date):
+            logger.info(
+                f'skip existing race: {race_name_no_year} date: {race_date}')
+            continue
+
         race_location_full_name = ''
         race_distance_info = {}
         obstri_info_race = obstri_matcher.find_race_info(obstri_race)
         if obstri_info_race:
             race_location_full_name = obstri_info_race['c']
-            obstri_race_info_str = obstri_info_race['info']
+            obstri_race_info_str = obstri_info_race['info'] if 'info' in obstri_info_race else None
             if obstri_race_info_str:
                 obstri_race_info = json.loads(obstri_race_info_str)
                 race_distance_info = builder.build_distance_info(
@@ -245,7 +320,8 @@ def publish_ironman_data(start_index, limit, dry_run, collection, db):
                 f'No obstri info race found race: {race_full_name}')
 
         race_location_desc = race_location_full_name.split(',')[-1].strip()
-        race_country = country_resolver.try_deduce_country(race_location_desc)
+        race_country = country_resolver.try_to_deduce_country(
+            race_location_desc)
         race_location_info = builder.build_location_info(
             description=race_location_full_name, country=race_country)
 
@@ -259,7 +335,7 @@ def publish_ironman_data(start_index, limit, dry_run, collection, db):
         # Race info
         race_tri_type = parser.get_race_tri_type(race_full_name)
         race_info = builder.build_race_info(
-            name=race_full_name,
+            name=race_name_no_year,
             date=race_date,
             location_info=race_location_info,
             brand=parser.IRONMAN_BRAND,
@@ -282,8 +358,8 @@ def publish_ironman_data(start_index, limit, dry_run, collection, db):
                 count_by_gender[gender] = 0
             count_by_gender[gender] += 1
 
-        age_rank, gender_rank, overall_rank = get_ranks_by_legs(
-            race_results, count_by_age_group, count_by_gender)
+        age_rank, gender_rank, overall_rank, time_age_rank, time_gender_rank, time_overall_rank = \
+            get_ranks_by_legs(race_results, count_by_age_group, count_by_gender)
 
         def get_legs(race_result):
             legs = {}
@@ -294,7 +370,10 @@ def publish_ironman_data(start_index, limit, dry_run, collection, db):
                     time=parser.get_leg_time(race_result, ironman_leg_name),
                     age_rank=age_rank[ironman_leg_name][contact_id],
                     gender_rank=gender_rank[ironman_leg_name][contact_id],
-                    overall_rank=overall_rank[ironman_leg_name][contact_id]
+                    overall_rank=overall_rank[ironman_leg_name][contact_id],
+                    time_age_rank=time_age_rank[ironman_leg_name][contact_id],
+                    time_gender_rank=time_gender_rank[ironman_leg_name][contact_id],
+                    time_overall_rank=time_overall_rank[ironman_leg_name][contact_id],
                 )
             return legs
 
@@ -374,8 +453,8 @@ def main():
     start_index = 0
     limit = 0
     dry_run = False
-    # collection = 'races'
-    collection = 'races2'
+    collection = 'races'
+    # collection = 'races_fix_name'
     db = 'triscore'
 
     publish_ironman_data(start_index, limit, dry_run, collection, db)

@@ -96,22 +96,28 @@ def build_athlete_result(athlete_id, athlete_name, country_fifa_code, bib, statu
         'a': age_group,
         'as': age_group_size,
         'ar': legs[FINISH_LEG]['ar'],
+        'tar': legs[FINISH_LEG]['tar'],
 
         'g': gender,
         'gs': gender_size,
         'gr': legs[FINISH_LEG]['gr'],
+        'tgr': legs[FINISH_LEG]['tgr'],
 
         'os': overall_size,
         'or': legs[FINISH_LEG]['or'],
+        'tor': legs[FINISH_LEG]['tor'],
 
         'legs': inner_legs,
     }
 
 
-def build_leg(time, age_rank, gender_rank, overall_rank):
+def build_leg(time, age_rank, gender_rank, overall_rank, time_age_rank, time_gender_rank, time_overall_rank):
     return {
         't': time,
         'ar': age_rank,
         'gr': gender_rank,
-        'or': overall_rank
+        'or': overall_rank,
+        'tar': time_age_rank,
+        'tgr': time_gender_rank,
+        'tor': time_overall_rank
     }

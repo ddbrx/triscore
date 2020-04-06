@@ -13,15 +13,10 @@ def get_score_and_race_count(athletes):
         yield int(athlete['s']), int(athlete['p'])
 
 
-def print_distribution(athletes):
+def gen_distribution_by_score(athletes):
     prev_index = -1
     races = []
     count = 0
-
-    def dump_stats(index, count, races):
-        median_races = sorted(races)[int(len(races) / 2)]
-        print(
-            f'[{index * 100}, {(index + 1)*100}) count: {count} races: {median_races}')
 
     for score, race_count in get_score_and_race_count(athletes):
         index = int(score / 100)
@@ -29,13 +24,24 @@ def print_distribution(athletes):
             prev_index = index
 
         if index != prev_index:
-            dump_stats(prev_index, count, races)
+            median_races = sorted(races)[int(len(races) / 2)]
+            yield f'[{(index + 1) * 100}, {(index + 2)*100}) count: {count} races: {median_races}'
             races = []
             count = 0
             prev_index = index
 
         count += 1
         races.append(race_count)
+
+
+def get_race_count_distribution(athletes):
+    race_count_distribution = {}
+    for athlete in athletes:
+        p = athlete['p']
+        if p not in race_count_distribution:
+            race_count_distribution[p] = 0
+        race_count_distribution[p] += 1
+    return race_count_distribution
 
 
 def main():
@@ -49,7 +55,15 @@ def main():
     score_storage = ScoreStorage()
     athletes = score_storage.get_top_athletes(
         country=args.country, limit=args.limit)
-    print_distribution(athletes)
+    # gen_distribution_by_score(athletes)
+    race_count_distribution = get_race_count_distribution(athletes)
+    print(f'races\t\tathletes=\t\tathletes>=\t\tpercent')
+    total_athletes = sum(race_count_distribution.values())
+    more_or_equal_athletes = total_athletes
+    for p, count in sorted(race_count_distribution.items(), key=lambda x: -x[1]):
+        percent = 100. * count / total_athletes
+        print(f'{p}\t\t{count}\t\t{more_or_equal_athletes}\t\t{percent:.1f}')
+        more_or_equal_athletes -= count
 
 
 if __name__ == '__main__':

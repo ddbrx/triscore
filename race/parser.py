@@ -58,6 +58,10 @@ def get_age_group_rank(result):
     return result['ar']
 
 
+def get_time_age_group_rank(result):
+    return result['tar']
+
+
 def get_gender(result):
     return result['g']
 
@@ -70,12 +74,20 @@ def get_gender_rank(result):
     return result['gr']
 
 
+def get_time_gender_rank(result):
+    return result['tgr']
+
+
 def get_overall_size(result):
     return result['os']
 
 
 def get_overall_rank(result):
     return result['or']
+
+
+def get_time_overall_rank(result):
+    return result['tor']
 
 
 def get_legs(result):

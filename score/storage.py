@@ -1,10 +1,11 @@
+import json
 import re
 from pymongo import MongoClient, ASCENDING, DESCENDING
 
 from base import dt, log
 
 
-logger = log.setup_logger(__file__)
+logger = log.setup_logger(__file__, debug=True)
 
 NO_LIMIT = 1000 * 1000 * 1000
 
@@ -17,7 +18,7 @@ class ScoreStorage:
 
     def get_top_athletes(self, name='', country='', sort_field='s', sort_order=DESCENDING, skip=0, limit=0):
         projection = {'_id': 0, 'h': 0, 'prefixes': 0}
-        sort = [(sort_field, sort_order), ('s', sort_order)]
+        sort = [(sort_field, sort_order)]
 
         where = {}
         if country:
@@ -31,8 +32,7 @@ class ScoreStorage:
                 # exact search
                 name = f'\"{name}\"'
 
-            # text_query = {'$text': {'$search': name}}
-            text_query = {'n': re.compile(f'{name}')}
+            text_query = {'$text': {'$search': name}}
             if len(where) > 0:
                 query['$and'] = [
                     where,
@@ -43,7 +43,7 @@ class ScoreStorage:
         else:
             query = where
 
-        logger.debug(f'query: \'{query}\'')
+        logger.info(f'query: \'{query}\' sort: {sort}')
         return self.scores_collection.find(
             query,
             sort=sort,
@@ -115,6 +115,7 @@ class ScoreStorage:
     def _create_indices(self):
         self.scores_collection.create_index('id', unique=True)
         self.scores_collection.create_index('n')
+        self.scores_collection.create_index([('n', 'text')])
         self.scores_collection.create_index('s')
         self.scores_collection.create_index('g')
         self.scores_collection.create_index(
@@ -163,4 +164,5 @@ class MockScoreStorage:
         self.athlete_by_id[athlete_id]['s'] = race_summary['ns']
         self.athlete_by_id[athlete_id]['p'] = race_summary['index']
         self.athlete_by_id[athlete_id]['a'] = race_summary['a']
+        self.athlete_by_id[athlete_id]['c'] = race_summary['c']
         self.athlete_by_id[athlete_id]['h'].append(race_summary)

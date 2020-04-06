@@ -39,16 +39,34 @@ class TestTryDeduceCountry:
     resolver = LocationResolver()
 
     def test_netherlands(self):
-        assert self.resolver.try_deduce_country('The Netherlands')
+        assert self.resolver.try_to_deduce_country('The Netherlands')
 
     def test_korea(self):
-        assert self.resolver.try_deduce_country('Korea')
+        assert self.resolver.try_to_deduce_country('Korea')
+
+    def test_uk(self):
+        assert self.resolver.try_to_deduce_country('UK')
 
     def test_england(self):
-        assert self.resolver.try_deduce_country('England')
+        assert self.resolver.try_to_deduce_country('England')
 
     def test_victoria(self):
-        assert self.resolver.try_deduce_country('Victoria')
+        assert self.resolver.try_to_deduce_country('Victoria')
 
     def test_ny(self):
-        assert self.resolver.try_deduce_country('NY')
+        assert self.resolver.try_to_deduce_country('NY')
+
+    def test_hawaii(self):
+        assert self.resolver.try_to_deduce_country('Hawaii')
+
+    def test_usa(self):
+        assert self.resolver.try_to_deduce_country('USA')
+
+    def test_south_africa(self):
+        assert self.resolver.try_to_deduce_country('South Africa')
+
+    def test_wales(self):
+        assert self.resolver.try_to_deduce_country('Wales')
+
+    def test_scotland(self):
+        assert self.resolver.try_to_deduce_country('Scotland')

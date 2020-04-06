@@ -8,8 +8,10 @@ CYRILLIC_FIFA_CODES = ['RUS', 'BLR', 'UKR']
 
 class LocationResolver:
     COUNTRY_EXCEPTION_MAPPING = {
-        'Korea': 'Korea, South',
+        'Korea': 'Korea, South',  # Sorry, Kim
         'England': 'United Kingdom',
+        'Scotland': 'United Kingdom',
+        'Wales': 'United Kingdom',
         'Victoria': 'Australia'
     }
 
@@ -37,7 +39,6 @@ class LocationResolver:
 
         return None
 
-
     def get_country_or_none(self, condition):
         filtered_a2 = self.get_countries(condition)
         if len(filtered_a2) == 1:
@@ -50,7 +51,7 @@ class LocationResolver:
     def get_usa_state_names(self):
         return
 
-    def try_deduce_country(self, name):
+    def try_to_deduce_country(self, name):
         country_options = [name]
         country_words = name.split()
         for i in range(0, len(country_words) + 1):
@@ -65,9 +66,10 @@ class LocationResolver:
             if country_option in self.states.values() or country_option.upper() in self.states.keys():
                 return self.get_country_by_iso2_code_or_none('US')
 
-            countries = self.get_countries(
-                lambda x: x['name'] == country_option)
-            if len(countries) == 1:
-                return countries[0]
+            for field in ['name', 'ioc', 'fifa']:
+                countries = self.get_countries(
+                    lambda x: x[field] == country_option)
+                if len(countries) == 1:
+                    return countries[0]
 
         return None

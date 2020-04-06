@@ -11,6 +11,7 @@ from score.storage import ScoreStorage
 
 logger = log.setup_logger(__file__)
 
+
 app = Flask(__name__)
 
 race_storage = RaceStorage(collection_name='races')
@@ -158,4 +159,4 @@ def athlete_details():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0')

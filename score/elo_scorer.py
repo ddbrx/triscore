@@ -300,8 +300,7 @@ def main():
     race_storage = RaceStorage(
         collection_name=args.races_collection, dbname=args.races_db)
 
-    races = race_storage.get_races(
-        skip=args.skip, limit=args.limit, ascending=True)
+    races = race_storage.get_races(skip=args.skip, limit=args.limit)
     race_count = races.count()
 
 

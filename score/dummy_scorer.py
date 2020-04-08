@@ -34,7 +34,7 @@ def main():
     athlete_id_to_scores = {}
     max_count = -1
 
-    races = race_storage.get_races(ascending=True)
+    races = race_storage.get_races()
     race_count = races.count()
 
     for i, race in enumerate(races):

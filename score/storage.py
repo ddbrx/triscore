@@ -65,6 +65,27 @@ class ScoreStorage:
             score_by_id[athlete_id] = score
         return score_by_id
 
+    def get_score_by_id_and_race(self, race_name, race_date, athlete_ids=[]):
+        score_by_id = {}
+        for athlete in self.get_athletes(athlete_ids, projection={'id': 1, 's': 1, 'h': 1}):
+            athlete_id = athlete['id']
+
+            found = False
+            for race in athlete['h']:
+                rn = race['race']
+                rd = race['date']
+                if rn == race_name and rd == race_date:
+                    score = race['ps']
+                    score_by_id[athlete_id] = score
+                    found = True
+                    break
+            if not found:
+                logger.warning(
+                    f'score not found athlete_id: {athlete_id} race: {race_name} date: {race_date}')
+                score_by_id[athlete_id] = 0
+
+        return score_by_id
+
     def get_race_count_by_id(self, athlete_ids=[]):
         race_count_by_id = {}
         for athlete in self.get_athletes(athlete_ids, projection={'id': 1, 'p': 1}):

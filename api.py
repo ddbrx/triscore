@@ -53,7 +53,7 @@ def races():
         f'sort_field: {sort_field} sort_order: {sort_order} from: {index_from} '
         f'to: {index_to} name: {filter_name} country: {filter_country}')
 
-    cursor = race_storage.get_top_races(
+    cursor = race_storage.get_races(
         country=filter_country,
         name=filter_name,
         sort_field=sort_field,
@@ -92,17 +92,26 @@ def race_details():
     logger.info(
         f'name: {name} date: {date} skip: {skip} limit: {limit} sort_field: {sort_field} sort_order: {sort_order}')
 
-    race_results = race_storage.get_race_results(
+    race_results_list = list(race_storage.get_race_results(
         name=name,
         date=date,
         sort_field=sort_field,
         sort_order=sort_order,
         skip=skip,
         limit=limit
-    )
+    ))
+
+    if len(race_results_list) > 0:
+        athlete_ids = list(map(lambda x: x['results']['id'], race_results_list))
+        race_name = race_results_list[0]['name']
+        race_date = race_results_list[0]['date']
+        score_by_id = score_storage.get_score_by_id_and_race(athlete_ids=athlete_ids, race_name=race_name, race_date=race_date)
+        for race_result in race_results_list:
+            athlete_id = race_result['results']['id']
+            race_result['results'].update({'s': score_by_id[athlete_id]})
 
     data = {
-        'data': list(race_results)
+        'data': race_results_list
     }
 
     return data, 200

@@ -1,0 +1,10 @@
+obstri = db.getCollection('obstri')
+// obstri.createIndex({'rn': 'text'})
+obstri.find({'rn': /Dubai/, 'y': '2020', invalid: false}).sort({d: -1})
+// obstri.find({'rn': /Arizona/}).sort({d: -1})
+// obstri.find({'r': /vineman/}).sort({d: -1})
+// obstri.find({'$and': [{'$text': {'$search': 'Cozumel'}}, {'y': 2019}]})
+// obstri.find( {'$and': [{'$text': {'$search': 'sunshine coast'}}, {'y': '2019'}, {'r': /70.3/}]})
+// obstri.find({'r': 'cozumel70.3', 'y': '2019'})
+
+// obstri.updateMany({}, {'$set': {'invalid': false}})

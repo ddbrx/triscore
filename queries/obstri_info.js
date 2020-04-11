@@ -1,0 +1,1 @@
+db.getCollection('obstri_info').find({rn: /IRONMAN World Championship/})

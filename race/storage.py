@@ -1,3 +1,4 @@
+from bson import ObjectId
 from pymongo import MongoClient
 from base import log
 
@@ -91,14 +92,16 @@ class RaceStorage:
         if not race_id:
             logger.warning(f'no race found to remove: {name} {date}')
             return
-        logger.info(f'dropping race {name} {date} {race_id}')
-        self.db[race_id].drop_collection()
+
+        logger.info(f'remove race meta {name} {date} {race_id}')
+        self.races_meta.remove({'_id': ObjectId(race_id)})
+        self.db[race_id].drop()
 
     def get_race_length(self, name, date):
         race_id = self._get_race_id(name, date)
         if not race_id:
             return 0
-        return seld.db[race_id].count_documents()
+        return self.db[race_id].count()
 
     def race_processed(self, name, date):
         race_meta = self._get_race_meta(name, date)

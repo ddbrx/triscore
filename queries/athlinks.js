@@ -1,0 +1,11 @@
+athlinks = db.getCollection('athlinks')
+
+// athlinks.count()
+// athlinks.createIndex('city')
+// athlinks.find({'city': /Sochi/}) 
+// athlinks.find({'$text': {'$search': 'ironman'}}).count()
+// athlinks.find({'$text': {'$search': '"Ironman 70.3 Port Macquarie"'}})
+// athlinks.find({'$text': {'$search': 'ironstar'}})
+athlinks.find({'masterEventId': 158286}) 
+// athlinks.find({'masterEventTitle': /Ironman/}) 
+// athlinks.find({'masterEventTitle': /IRONSTAR/}).sort({masterEventTitle: 1})

@@ -1,3 +1,7 @@
+def get_processed(race):
+    return race['_processed']
+
+
 def get_race_name(race):
     return race['name']
 
@@ -16,10 +20,6 @@ def get_race_type(race):
 
 def get_race_fifa_code(race):
     return race['location']['c']
-
-
-def get_race_results(race):
-    return race['results']
 
 
 def get_athlete_id(result):

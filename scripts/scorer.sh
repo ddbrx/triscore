@@ -1,0 +1,1 @@
+PYTHONPATH=./ python3 score/elo_scorer.py --log-file .tmp/elo_srorer.log --prod

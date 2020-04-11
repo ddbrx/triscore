@@ -87,5 +87,5 @@
         "cinttypes": "cpp",
         "unordered_set": "cpp"
     },
-    "python.pythonPath": "/Users/dmitriyd/.virtualenvs/triscore/bin/python"
+    "python.pythonPath": "/home/dmitriyd/.virtualenvs/triscore-env/bin/python"
 }

@@ -26,6 +26,7 @@ __pycache__
 .ipynb_checkpoints
 .idea
 *.egg-info
+.uwsgi_plugins_builder
 
 # System Files
 .DS_Store

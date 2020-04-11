@@ -27,6 +27,7 @@ B = 0
 C = 0
 D = 0
 
+
 def get_elo_win_probability(ra, rb):
     return 1. / (1. + pow(10., (rb - ra) / 400.))
 
@@ -45,8 +46,18 @@ def get_race_type_multiplier(race_type):
 
 def get_score_multiplier(rank_delta, score):
     if rank_delta > 0:
-        x = max(2., -score + 3500.)
-        return A * math.log(x, B * 0.1)
+        # x = max(2., -score + 3500.)
+        # return A * math.log(x, B * 0.1)
+
+        # formula2
+        # base = B * 0.1
+        # x = max(base, 14 + base - score / 250.)
+        # return A * math.log(x, base)
+
+        # formula3
+        base = B * 0.1
+        x = max(base, base + 60 - score / 50.)
+        return A * math.log(x, base)
     else:
         # 1000 -> 1
         # 3000 -> 1 + C
@@ -62,8 +73,8 @@ def get_dnf_multiplier(is_finished, score):
 
 
 def get_first_time_multiplier(score):
-    if score == START_SCORE:
-        return 1. / 3
+    # if score == START_SCORE:
+    #     return 1. / 3
 
     return 1.
 
@@ -74,15 +85,13 @@ class EloScorer:
         self.score_storage = ScoreStorage(
             collection_name=scores_collection) if self.prod else MockScoreStorage()
 
-    def add_race(self, race):
-        results_by_group = self.get_results_by_group(race)
+    def add_race(self, race_info, race_results):
+        results_by_group = self.get_results_by_group(race_results)
         for age_group, results in results_by_group.items():
-            self.process_group(age_group, results, race)
+            self.process_group(age_group, results, race_info)
 
-    def get_results_by_group(self, race):
+    def get_results_by_group(self, race_results):
         results_by_group = {}
-
-        race_results = race_parser.get_race_results(race)
         for result in race_results:
             age_group = race_parser.get_age_group(result)
             if age_group not in results_by_group:
@@ -91,7 +100,7 @@ class EloScorer:
 
         return results_by_group
 
-    def process_group(self, age_group, results, race):
+    def process_group(self, age_group, results, race_info):
         real_age_group_size = len(results)
         assert real_age_group_size > 0, 'emptry age_group: {age_group}'
 
@@ -106,11 +115,10 @@ class EloScorer:
         logger.debug(
             f'process age group: {age_group} real size: {real_age_group_size} virtual: {virtual_age_group_size}')
 
-        race_name = race_parser.get_race_name(race)
-        race_date = race_parser.get_race_date(race)
-        race_type = race_parser.get_race_type(race)
-        race_fifa_code = race_parser.get_race_fifa_code(race)
-        race_type_multiplier = get_race_type_multiplier(race_type)
+        race_name = race_parser.get_race_name(race_info)
+        race_date = race_parser.get_race_date(race_info)
+        race_type = race_parser.get_race_type(race_info)
+        race_fifa_code = race_parser.get_race_fifa_code(race_info)
 
         self.make_new_athletes(results)
 
@@ -126,7 +134,7 @@ class EloScorer:
                 not_finished_found = True
             else:
                 assert finish_status == race_builder.FINISH_STATUS_OK, f'finished status should be ok: {result}'
-                assert not not_finished_found, 'invalid order of athletes: finished after dnf'
+                assert not not_finished_found, f'invalid order of athletes: finished after dnf: {result}'
                 assert finish_time >= prev_finish_time, \
                     f'descending finish time: {finish_time} prev: {prev_finish_time} result: {result}'
 
@@ -142,6 +150,8 @@ class EloScorer:
         score_by_id = self.score_storage.get_score_by_id(athlete_ids)
         races_count_by_id = self.score_storage.get_race_count_by_id(
             athlete_ids)
+
+        race_type_multiplier = get_race_type_multiplier(race_type)
 
         for result in results:
             athlete_id = race_parser.get_athlete_id(result)
@@ -173,7 +183,8 @@ class EloScorer:
                 virtual_time_rank = 1 + 1. * (virtual_age_group_size - 1) * \
                     time_diff / max_time_diff
 
-            rank_delta = (virtual_seed_rank - virtual_time_rank) / (virtual_age_group_size - 1)
+            rank_delta = (virtual_seed_rank - virtual_time_rank) / \
+                (virtual_age_group_size - 1)
             score_multiplier = get_score_multiplier(rank_delta, athlete_score)
             dnf_multiplier = get_dnf_multiplier(is_finished, athlete_score)
             first_time_multiplier = get_first_time_multiplier(athlete_score)
@@ -272,10 +283,8 @@ def main():
     parser.add_argument('--skip', type=int, default=0)
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--scores-collection', default='scores')
-    parser.add_argument('--races-collection', default='races')
-    parser.add_argument('--races-db', default='triscore')
     parser.add_argument('--prod', action='store_true')
-    parser.add_argument('--file', required=True)
+    parser.add_argument('--log-file', required=True)
 
     parser.add_argument('--A', type=int, default=DEFAULT_A)
     parser.add_argument('--B', type=int, default=DEFAULT_B)
@@ -297,18 +306,17 @@ def main():
 
     elo_scorer = EloScorer(
         scores_collection=args.scores_collection, prod=args.prod)
-    race_storage = RaceStorage(
-        collection_name=args.races_collection, dbname=args.races_db)
+    race_storage = RaceStorage()
 
     races = race_storage.get_races(skip=args.skip, limit=args.limit)
     race_count = races.count()
 
-
     def print_distribution(i=None):
         top_athletes = elo_scorer.get_top_athletes()
-        filename = os.path.basename(args.file) + (f'.{i}' if i else '')
+        filename = os.path.basename(args.log_file) + (f'.{i}' if i else '')
 
-        dir = os.path.join(os.path.dirname(args.file), os.path.splitext(os.path.basename(args.file))[0])
+        dir = os.path.join(os.path.dirname(args.log_file),
+                           os.path.splitext(os.path.basename(args.log_file))[0])
         os.makedirs(dir, exist_ok=True)
 
         file = os.path.join(dir, filename)
@@ -318,6 +326,13 @@ def main():
                 f.write(f'distribution #{i}\n')
             else:
                 f.write('distribution total\n')
+
+
+            for line in distribution.gen_chunks_distribution(top_athletes):
+                f.write(line + '\n')
+
+            f.write('\n----\n')
+
             for line in distribution.gen_distribution_by_score(top_athletes):
                 f.write(line + '\n')
 
@@ -329,11 +344,18 @@ def main():
             for line in utils.gen_dicts(list(top_athletes)[-100:], lj=30, filter_keys=['id', 'h', 'g']):
                 f.write(line + '\n')
 
-    for i, race in enumerate(races):
-        race_date = race_parser.get_race_date(race)
-        race_name = race_parser.get_race_name(race)
+    for i, race_info in enumerate(races):
+        race_date = race_parser.get_race_date(race_info)
+        race_name = race_parser.get_race_name(race_info)
         logger.info(f'{i + 1}/{race_count}: {race_date} {race_name}')
-        elo_scorer.add_race(race)
+
+        if args.prod and race_parser.get_race_processed(race_info):
+            logger.info(f'skip processed race')
+        else:
+            race_results = race_storage.get_race_results(
+                race_name=race_name, race_date=race_date)
+            elo_scorer.add_race(race_info, race_results)
+
         if (i + 1) % 100 == 0:
             print_distribution(i + 1)
 

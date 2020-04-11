@@ -50,6 +50,11 @@ class ScoreStorage:
             projection=projection
         ).skip(skip).limit(limit)
 
+    def get_athlete(self, athlete_id, projection={}):
+        where = {'id': athlete_id}
+        projection.update({'_id': 0})
+        return self.scores_collection.find_one(where, projection=projection)
+
     def get_athletes(self, athlete_ids=[], projection={}):
         where = {}
         if len(athlete_ids) > 0:
@@ -65,9 +70,9 @@ class ScoreStorage:
             score_by_id[athlete_id] = score
         return score_by_id
 
-    def get_score_by_id_and_race(self, race_name, race_date, athlete_ids=[]):
+    def get_scores_and_country(self, race_name, race_date, athlete_ids=[]):
         score_by_id = {}
-        for athlete in self.get_athletes(athlete_ids, projection={'id': 1, 's': 1, 'h': 1}):
+        for athlete in self.get_athletes(athlete_ids, projection={'id': 1, 'c': 1, 's': 1, 'h': 1}):
             athlete_id = athlete['id']
 
             found = False
@@ -75,14 +80,15 @@ class ScoreStorage:
                 rn = race['race']
                 rd = race['date']
                 if rn == race_name and rd == race_date:
-                    score = race['ps']
+                    score = {'ps': race['ps'],
+                             'ns': race['ns'], 'c': athlete['c']}
                     score_by_id[athlete_id] = score
                     found = True
                     break
             if not found:
                 logger.warning(
                     f'score not found athlete_id: {athlete_id} race: {race_name} date: {race_date}')
-                score_by_id[athlete_id] = 0
+                score_by_id[athlete_id] = {'ps': 0, 'ns': 0}
 
         return score_by_id
 

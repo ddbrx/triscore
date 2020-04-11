@@ -9,34 +9,17 @@ PROCESSED_FIELD = '_processed'
 
 
 class RaceStorage:
-    def __init__(self, dbname):
+    def __init__(self, dbname='races-v0-1'):
         self.mongo_client = MongoClient()
         self.db = self.mongo_client[dbname]
         self.races_meta = self.db['meta']
         RaceStorage._create_meta_indices(self.races_meta)
 
-    def get_races(self, name='', country='', sort_field='date', sort_order=1, skip=0, limit=0, exact_search=False):
-        projection = {'_id': 0}
+    def get_races(self, name='', country='', sort_field='date', sort_order=1, skip=0, limit=0, exact=False, projection={}):
+        projection.update({'_id': 0})
         sort = [(sort_field, sort_order)]
 
-        conditions = []
-        if country:
-            conditions.append({'location.c': country})
-
-        name = name.strip()
-        if name:
-            if exact_search:
-                name = f'\"{name}\"'
-            conditions.append({'$text': {'$search': name}})
-
-        query = {}
-        if len(conditions) > 1:
-            query = {
-                '$and': conditions
-            }
-        elif len(conditions) == 1:
-            query = conditions[0]
-
+        query = self._get_athlete_and_country_query(name, country, country_field='location.c', exact=exact)
         logger.info(f'query: \'{query}\'')
         return self.races_meta.find(
             query,
@@ -52,21 +35,29 @@ class RaceStorage:
             f['date'] = date
         return self.races_meta.count_documents(filter=f) > 0
 
-    def get_race_results(self, name, date, sort_field, sort_order, skip=0, limit=0):
-        race_meta = self._get_race_meta(name, date)
-        if not race_meta:
-            log.error(f'no race meta found name: {name} date: {date}')
+    def get_race_info(self, race_name, race_date):
+        race_meta = self._get_race_meta(race_name, race_date)
+        del race_meta['_id']
+        del race_meta['_processed']
+        return race_meta
+
+    def get_race_results(self, race_name, race_date, athlete_filter='', country_filter='', sort_field='or', sort_order=1, skip=0, limit=0, exact=False):
+        race_id = self._get_race_id(race_name, race_date)
+        if not race_id:
+            log.error(
+                f'no race id found race_name: {race_name} race_date: {race_date}')
             return []
 
-        race_collection = self.db[str(race_meta['_id'])]
-        query = {}
+        race_collection = self.db[race_id]
+        query = self._get_athlete_and_country_query(
+            athlete_filter, country_filter, country_field='c', exact=exact)
         projection = {'_id': 0}
-        sort = [sort_field, sort_order]
+        sort = [(sort_field, sort_order)]
         return race_collection.find(
             query,
             sort=sort,
             projection=projection
-        )
+        ).skip(skip).limit(limit)
 
     def add_race(self, info, results):
         race_name = info['name']
@@ -117,6 +108,26 @@ class RaceStorage:
 
     def has_race(self, name, date):
         return self._get_race_id(name, date) != None
+
+    def _get_athlete_and_country_query(self, name, country, country_field, exact=False):
+        conditions = []
+        if country and country.strip():
+            conditions.append({country_field: country.strip()})
+
+        if name and name.strip():
+            name = name.strip()
+            if exact:
+                name = f'\"{name}\"'
+            conditions.append({'$text': {'$search': name}})
+
+        query = {}
+        if len(conditions) > 1:
+            query = {
+                '$and': conditions
+            }
+        elif len(conditions) == 1:
+            query = conditions[0]
+        return query
 
     def _get_race_id(self, name, date):
         race_meta = self._get_race_meta(name, date)

@@ -254,9 +254,9 @@ def fix_undefined_times(race_results):
     return race_results
 
 
-def publish_ironman_data(start_index, limit, dry_run, db):
+def publish_ironman_data(start_index, limit, dry_run):
     ironman_data = DataStorage(collection_name='ironman', indices=['SubEvent'])
-    race_storage = RaceStorage(dbname=db)
+    race_storage = RaceStorage()
 
     obstri_matcher = ObstriMatcher()
 
@@ -470,9 +470,8 @@ def main():
     start_index = 0
     limit = 0
     dry_run = False
-    db = 'races-v0-1'
 
-    publish_ironman_data(start_index, limit, dry_run, db)
+    publish_ironman_data(start_index, limit, dry_run)
 
 
 if __name__ == '__main__':

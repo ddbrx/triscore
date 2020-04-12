@@ -11,18 +11,22 @@ NO_LIMIT = 1000 * 1000 * 1000
 
 
 class ScoreStorage:
-    def __init__(self, collection_name='scores', dbname='triscore'):
+    def __init__(self, collection_name='scores', dbname='triscore', create_indices=False):
         self.mongo_client = MongoClient()
         self.scores_collection = self.mongo_client[dbname][collection_name]
-        self._create_indices()
+        if create_indices:
+            self._create_indices()
 
-    def get_top_athletes(self, name='', country='', sort_field='s', sort_order=DESCENDING, skip=0, limit=0):
+    def get_top_athletes(self, name='', country='', age_group = '', sort_field='s', sort_order=DESCENDING, skip=0, limit=0):
         projection = {'_id': 0, 'h': 0, 'prefixes': 0}
         sort = [(sort_field, sort_order)]
 
         where = {}
         if country:
             where['c'] = country
+
+        if age_group:
+            where['a'] = age_group
 
         query = {}
         name = name.strip()
@@ -143,12 +147,15 @@ class ScoreStorage:
         self.scores_collection.create_index('id', unique=True)
         self.scores_collection.create_index('n')
         self.scores_collection.create_index([('n', 'text')])
-        self.scores_collection.create_index('s')
         self.scores_collection.create_index('g')
-        self.scores_collection.create_index(
-            [('p', DESCENDING), ('s', DESCENDING)])
-        self.scores_collection.create_index(
-            [('c', DESCENDING), ('s', DESCENDING)])
+        self.scores_collection.create_index('c')
+        self.scores_collection.create_index('a')
+        self.scores_collection.create_index('p')
+        self.scores_collection.create_index('s')
+        # self.scores_collection.create_index(
+        #     [('p', DESCENDING), ('s', DESCENDING)])
+        # self.scores_collection.create_index(
+        #     [('c', DESCENDING), ('s', DESCENDING)])
 
 
 class MockScoreStorage:

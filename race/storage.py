@@ -9,17 +9,19 @@ PROCESSED_FIELD = '_processed'
 
 
 class RaceStorage:
-    def __init__(self, dbname='races-v0-1'):
+    def __init__(self, dbname='races-v0-1', create_indices=False):
         self.mongo_client = MongoClient()
         self.db = self.mongo_client[dbname]
         self.races_meta = self.db['meta']
-        RaceStorage._create_meta_indices(self.races_meta)
+        if create_indices:
+            RaceStorage._create_meta_indices(self.races_meta)
 
     def get_races(self, name='', country='', sort_field='date', sort_order=1, skip=0, limit=0, exact=False, projection={}):
         projection.update({'_id': 0})
         sort = [(sort_field, sort_order)]
 
-        query = self._get_athlete_and_country_query(name, country, country_field='location.c', exact=exact)
+        query = self._get_athlete_and_country_query(
+            name, country, country_field='location.c', exact=exact)
         logger.info(f'query: \'{query}\'')
         return self.races_meta.find(
             query,
@@ -41,7 +43,7 @@ class RaceStorage:
         del race_meta['_processed']
         return race_meta
 
-    def get_race_results(self, race_name, race_date, athlete_filter='', country_filter='', sort_field='or', sort_order=1, skip=0, limit=0, exact=False):
+    def get_race_results(self, race_name, race_date, athlete_filter='', country_filter='', age_group_filter='', sort_field='or', sort_order=1, skip=0, limit=0, exact=False):
         race_id = self._get_race_id(race_name, race_date)
         if not race_id:
             log.error(
@@ -50,7 +52,7 @@ class RaceStorage:
 
         race_collection = self.db[race_id]
         query = self._get_athlete_and_country_query(
-            athlete_filter, country_filter, country_field='c', exact=exact)
+            athlete_filter, country_filter, age_group_filter=age_group_filter, country_field='c', exact=exact)
         projection = {'_id': 0}
         sort = [(sort_field, sort_order)]
         return race_collection.find(
@@ -109,10 +111,13 @@ class RaceStorage:
     def has_race(self, name, date):
         return self._get_race_id(name, date) != None
 
-    def _get_athlete_and_country_query(self, name, country, country_field, exact=False):
+    def _get_athlete_and_country_query(self, name, country, age_group_filter='', country_field='c', exact=False):
         conditions = []
         if country and country.strip():
             conditions.append({country_field: country.strip()})
+
+        if age_group_filter and age_group_filter.strip():
+            conditions.append({'a': age_group_filter.strip()})
 
         if name and name.strip():
             name = name.strip()

@@ -11,9 +11,15 @@ def gen_dicts(ds, lj=20, filter_keys=[]):
     keys = list(filter(lambda x: x not in filter_keys, ds[0].keys()))
     header = ' '.join([key.ljust(lj) for key in keys])
     yield header
+
+    def get_rounded_value(value):
+        if isinstance(value, float):
+            return round(value, 2)
+        return value
+
     for d in ds:
         values = [d[key] for key in keys]
-        line = ' '.join([str(value).ljust(lj) for value in values])
+        line = ' '.join([str(get_rounded_value(value)).ljust(lj) for value in values])
         yield line
 
 

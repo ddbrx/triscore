@@ -16,8 +16,11 @@ app = Flask(__name__)
 
 MAX_ITEMS_LIMIT = 100
 
-# race_storage = RaceStorage()
-score_storage = ScoreStorage(collection_name='scores')
+RACES_DB = 'races-v0-1'
+
+SCORES_DB = 'triscore'
+SCORES_COLLECTION = 'scores'
+# SCORES_COLLECTION = 'scores-A-16-B-20-C-3-D-3'
 
 
 def add_rel_index(iterable, start_index):
@@ -30,6 +33,8 @@ def add_rel_index(iterable, start_index):
 
 @app.route('/races')
 def races():
+    race_storage = RaceStorage()
+
     logger.info(request.args)
 
     sort = request.args.get('sort')
@@ -57,7 +62,6 @@ def races():
         f'sort_field: {sort_field} sort_order: {sort_order} from: {index_from} '
         f'to: {index_to} name: {filter_name} country: {filter_country}')
 
-    race_storage = RaceStorage()
     races = race_storage.get_races(
         country=filter_country,
         name=filter_name,
@@ -99,6 +103,8 @@ def race_info():
 
 @app.route('/race-results')
 def race_results():
+    score_storage = ScoreStorage(
+        collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
     race_storage = RaceStorage()
 
     logger.info(request.args)
@@ -107,25 +113,27 @@ def race_results():
     race_date = request.args.get('date')
     athlete_filter = request.args.get('athlete')
     country_filter = request.args.get('country')
+    age_group_filter = request.args.get('group')
     skip = int(request.args.get('skip'))
     limit = min(int(request.args.get('limit')), MAX_ITEMS_LIMIT)
     sort = request.args.get('sort', default='rank')
     order = request.args.get('order', default='asc')
 
     sort_field = 'or'
-    if sort == 'rank':
+    if sort == 'finish':
         sort_field = 'or'
 
     sort_order = 1 if order == 'asc' else -1
 
     logger.info(
-        f'race_name: {race_name} race_date: {race_date} athlete_filter: {athlete_filter} country_filter: {country_filter} skip: {skip} limit: {limit} sort_field: {sort_field} sort_order: {sort_order}')
+        f'race_name: {race_name} race_date: {race_date} athlete_filter: {athlete_filter} country_filter: {country_filter} skip: {skip} limit: {limit} sort_field: {sort_field} sort_order: {sort_order} age_group_filter: {age_group_filter}')
 
     race_results = race_storage.get_race_results(
         race_name=race_name,
         race_date=race_date,
         athlete_filter=athlete_filter,
         country_filter=country_filter,
+        age_group_filter=age_group_filter,
         sort_field=sort_field,
         sort_order=sort_order,
         skip=skip,
@@ -154,32 +162,36 @@ def race_results():
 
 @app.route('/athletes')
 def athletes():
+    score_storage = ScoreStorage(
+        collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
+
     logger.info(request.args)
 
     sort = request.args.get('sort')
-
     order = request.args.get('order')
     index_from = int(request.args.get('from'))
     index_to = int(request.args.get('to'))
     filter_name = request.args.get('name', default='')
     filter_country = request.args.get('country', default='')
+    filter_age_group = request.args.get('group', default='')
 
     sort_field = 's'
     if sort == 'score':
         sort_field = 's'
     elif sort == 'races':
-        sort_field == 'p'
+        sort_field = 'p'
 
     sort_order = 1 if order == 'asc' else -1
     limit = min(MAX_ITEMS_LIMIT, index_to - index_from + 1)
 
     logger.info(
         f'sort_field: {sort_field} sort_order: {sort_order} from: {index_from} '
-        f'to: {index_to} name: {filter_name} country: {filter_country}')
+        f'to: {index_to} name: {filter_name} country: {filter_country} age_group: {filter_age_group}')
 
     cursor = score_storage.get_top_athletes(
         country=filter_country,
         name=filter_name,
+        age_group=filter_age_group,
         sort_field=sort_field,
         sort_order=sort_order,
         skip=index_from,
@@ -196,6 +208,8 @@ def athletes():
 
 @app.route('/athlete-details')
 def athlete_details():
+    score_storage = ScoreStorage(
+        collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
     athlete_id = request.args.get('id')
     logger.info(f'athlete_id: {athlete_id}')
     athlete = score_storage.get_athlete(athlete_id=athlete_id)

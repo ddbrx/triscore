@@ -1,4 +1,4 @@
-def get_processed(race):
+def get_race_processed(race):
     return race['_processed']
 
 

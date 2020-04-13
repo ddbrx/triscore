@@ -4,6 +4,7 @@ import json
 import time
 
 from flask import Flask, request
+from flask_cors import CORS
 
 from base import log
 from race.storage import RaceStorage
@@ -13,6 +14,7 @@ logger = log.setup_logger(__file__)
 
 
 app = Flask(__name__)
+CORS(app)
 
 MAX_ITEMS_LIMIT = 100
 
@@ -43,6 +45,7 @@ def races():
     index_to = int(request.args.get('to'))
     filter_name = request.args.get('name', default='')
     filter_country = request.args.get('country', default='')
+    filter_race_type = request.args.get('type', default='')
 
     sort_field = 'date'
     if sort == 'total':
@@ -60,11 +63,12 @@ def races():
 
     logger.info(
         f'sort_field: {sort_field} sort_order: {sort_order} from: {index_from} '
-        f'to: {index_to} name: {filter_name} country: {filter_country}')
+        f'to: {index_to} name: {filter_name} country: {filter_country} race_type: {filter_race_type}')
 
     races = race_storage.get_races(
         country=filter_country,
         name=filter_name,
+        race_type=filter_race_type,
         sort_field=sort_field,
         sort_order=sort_order,
         skip=index_from,

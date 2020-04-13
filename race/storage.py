@@ -16,12 +16,12 @@ class RaceStorage:
         if create_indices:
             RaceStorage._create_meta_indices(self.races_meta)
 
-    def get_races(self, name='', country='', sort_field='date', sort_order=1, skip=0, limit=0, exact=False, projection={}):
+    def get_races(self, name='', country='', race_type='', sort_field='date', sort_order=1, skip=0, limit=0, exact=False, projection={}):
         projection.update({'_id': 0})
         sort = [(sort_field, sort_order)]
 
         query = self._get_athlete_and_country_query(
-            name, country, country_field='location.c', exact=exact)
+            name, country, race_type=race_type, country_field='location.c', exact=exact)
         logger.info(f'query: \'{query}\'')
         return self.races_meta.find(
             query,
@@ -38,10 +38,12 @@ class RaceStorage:
         return self.races_meta.count_documents(filter=f) > 0
 
     def get_race_info(self, race_name, race_date):
-        race_meta = self._get_race_meta(race_name, race_date)
-        del race_meta['_id']
-        del race_meta['_processed']
-        return race_meta
+        race_meta = self._get_race_meta(name=race_name, date=race_date)
+        if race_meta:
+            del race_meta['_id']
+            del race_meta['_processed']
+            return race_meta
+        return {}
 
     def get_race_results(self, race_name, race_date, athlete_filter='', country_filter='', age_group_filter='', sort_field='or', sort_order=1, skip=0, limit=0, exact=False):
         race_id = self._get_race_id(race_name, race_date)
@@ -111,13 +113,16 @@ class RaceStorage:
     def has_race(self, name, date):
         return self._get_race_id(name, date) != None
 
-    def _get_athlete_and_country_query(self, name, country, age_group_filter='', country_field='c', exact=False):
+    def _get_athlete_and_country_query(self, name, country, race_type='', age_group_filter='', country_field='c', exact=False):
         conditions = []
         if country and country.strip():
             conditions.append({country_field: country.strip()})
 
         if age_group_filter and age_group_filter.strip():
             conditions.append({'a': age_group_filter.strip()})
+
+        if race_type and race_type.strip():
+            conditions.append({'type': race_type.strip()})
 
         if name and name.strip():
             name = name.strip()

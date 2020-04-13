@@ -65,3 +65,7 @@ sudo swapoff -v /swapfile
 
 ## Finally, remove the actual swapfile file using the rm command:
 sudo rm /swapfile
+
+
+## If swapon does not work
+http://linux-problem-solver.blogspot.com/2013/08/create-fake-swap-in-openvz-vps-if-you-get-swapon-failed-operation-not-permitted-error.html

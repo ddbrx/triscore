@@ -51,7 +51,7 @@ def get_score_multiplier(rank_delta, score):
 
         # formula2
         # base = B * 0.1
-        # x = max(base, 14 + base - score / 250.)
+        # x = max(base, 12 + base - score / 250.)
         # return A * math.log(x, base)
 
         # formula3 (3000)
@@ -65,24 +65,59 @@ def get_score_multiplier(rank_delta, score):
         # return min(A, math.log(x, base))
 
         # formula5 (3000)
-        base = B * 0.01
-        x = max(base, base + 12 - score / 250.)
-        return max(A, math.log(x, base))
+        # base = B * 0.01
+        # x = max(base, base + 12 - score / 250.)
+        # return max(A, math.log(x, base))
+
+        # formula 7
+        # base = B * 0.1
+        # x = max(base, 12 + base - score / 250.)
+        # return A * max(4, math.log(x, base))
+
+
+        # formula 9
+        # 1000 -> 50
+        # 3000 -> 30
+        return max(1., 60. - score / 100.)
     else:
         # 1000 -> 1
         # 3000 -> 1 + C
         # return max(1., 1 + C * (score - 1000.) / 2000.)
 
-
         # formula6 (negative simmetric to f5)
-        base = B * 0.01
-        x = max(base, base + 12 - (4000 - score) / 250.)
-        return max(C, math.log(x, base))
+        # base = B * 0.01
+        # x = max(base, base + 12 - (4000 - score) / 250.)
+        # return max(C, min(50, math.log(x, base)))
 
+        # formula7
+        # base = B * 0.1
+        # x = max(base, 12 + base - (4000 - score) / 250.)
+        # return C * math.log(x, base)
 
-def get_dnf_multiplier(is_finished, score):
-    if is_finished:
+        # 1000 -> 30/C
+        # 3000 -> 50/C
+        # return min(30, (60. - (4000 - x) / 100.)) / C
+
+        # formula 9
+        # 1000 -> 5
+        # 3000 -> 10
+        return max(10, min(5., 2.5 + score / 400.))
+
+def get_dnf_multiplier(finish_status, score):
+    if finish_status == 'ok':
         return 1.
+    elif finish_status == 'DNS':
+        return 0.
+
+    # formula 1-6
+    # 1000 -> 1
+    # 3000 -> 1 + D
+    # return max(1., 1 + D * (score - 1000.) / 2000.)
+
+    # formula 7
+    # return 1.
+
+    # formula 8
     # 1000 -> 1
     # 3000 -> 1 + D
     return max(1., 1 + D * (score - 1000.) / 2000.)
@@ -205,7 +240,7 @@ class EloScorer:
             rank_delta = (virtual_seed_rank - virtual_time_rank) / \
                 (virtual_age_group_size - 1)
             score_multiplier = get_score_multiplier(rank_delta, athlete_score)
-            dnf_multiplier = get_dnf_multiplier(is_finished, athlete_score)
+            dnf_multiplier = get_dnf_multiplier(finish_status, athlete_score)
             first_time_multiplier = get_first_time_multiplier(athlete_score)
 
             if not is_finished:
@@ -220,17 +255,16 @@ class EloScorer:
             race_summary = {}
 
             race_section = {
-                'index': new_race_count
+                'index': new_race_count,
+                'type': race_type
             }
 
             if self.prod:
                 race_section.update({
                     'race': race_name,
                     'date': race_date,
-                    'type': race_type,
                     'rc': race_fifa_code
                 })
-
             race_summary.update(race_section)
 
             result_section = {
@@ -244,7 +278,6 @@ class EloScorer:
 
                 'vtr': virtual_time_rank,
                 'vsr': virtual_seed_rank,
-                'vrd': rank_delta,
 
                 'ps': athlete_score,
                 'da': score_delta,
@@ -268,6 +301,14 @@ class EloScorer:
 
                     'legs': race_parser.get_legs(result)
                 })
+            else:
+                result_section.update({
+                    'vrd': rank_delta,
+                    'race_m': race_type_multiplier,
+                    'score_m': score_multiplier,
+                    'dnf_m': dnf_multiplier
+                })
+
             athlete_name = race_parser.get_athlete_name(result)
             logger.debug(f'athlete: {athlete_name} result: {result_section}')
             race_summary.update(result_section)
@@ -334,7 +375,8 @@ def main():
 
     def print_distribution(index=None):
         top_athletes = elo_scorer.get_top_athletes()
-        filename = os.path.basename(args.log_file) + (f'.{index}' if index else '')
+        filename = os.path.basename(
+            args.log_file) + (f'.{index}' if index else '')
 
         dir = os.path.join(os.path.dirname(args.log_file),
                            os.path.splitext(os.path.basename(args.log_file))[0])

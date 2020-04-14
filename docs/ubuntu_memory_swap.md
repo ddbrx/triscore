@@ -5,7 +5,7 @@ https://www.cyberciti.biz/faq/linux-add-a-swap-file-howto/
 sudo -s
 
 # allocate
-dd if=/dev/zero of=/swapfile bs=6044 count=1048576
+dd if=/dev/zero of=/swapfile bs=2048 count=1048576
 
 # permissions
 chmod 0600 /swapfile

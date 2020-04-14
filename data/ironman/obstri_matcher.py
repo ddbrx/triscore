@@ -5,7 +5,7 @@ import parser
 from base import log, utils
 from data.storage import DataStorage
 
-logger = log.setup_logger(__file__)
+logger = log.setup_logger(__file__, debug=False)
 
 
 class ObstriMatcher:
@@ -58,7 +58,10 @@ class ObstriMatcher:
 
         for sub_pure_name in utils.get_subsentences(pure_name):
             sub_short_name = sub_pure_name.replace(' ', '') + tri_tag
-            query = {'r': sub_short_name, 'y': year}
+            query = {'r': sub_short_name}
+            if sub_short_name.lower().find('vr') == -1:
+                query.update({'y': year})
+
             races = list(self.obstri_data.find(query))
             logger.debug(f'query: {query} races: {len(races)}')
             if len(races) == 1:

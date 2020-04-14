@@ -21,6 +21,8 @@ T2_LEG = 'Transition2'
 RUN_LEG = 'Run'
 FINISH_LEG = 'Finish'
 
+VR_HALFS = ['VR1']
+
 LEG_NAMES = [SWIM_LEG, T1_LEG, BIKE_LEG, T2_LEG, RUN_LEG, FINISH_LEG]
 
 
@@ -111,9 +113,13 @@ def get_race_name_no_year(race_full_name):
 def get_race_tri_type(race_name):
     assert race_name.find(IRONMAN_BRAND) != -1, f'not an ironman: {race_name}'
 
-    if race_name.find('5150') != -1 or race_name.find('5i50') != -1:
+    for vr_halfs in VR_HALFS:
+        if race_name.find(vr_halfs) != -1:
+            return 'vr-half'
+
+    elif race_name.find('5150') != -1 or race_name.find('5i50') != -1:
         return 'olympic'
-    elif race_name.find('70.3') != -1:
+    elif race_name.find('70.3') != -1
         return 'half'
     else:
         return 'full'

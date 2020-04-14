@@ -103,13 +103,13 @@ class RaceStorage:
         race_meta = self._get_race_meta(name, date)
         return race_meta and race_meta[PROCESSED_FIELD]
 
-    def set_race_processed(self, name, date, processed):
+    def set_race_processed(self, name, date, processed=True):
         race_id = self._get_race_id(name, date)
         if not race_id:
             logger.warning(
                 f'cannot set processed: race does not exist: {name} {date}')
             return False
-        return self.races_meta.update_one({'name': name, 'date': date}, {'$set', {PROCESSED_FIELD: processed}})
+        return self.races_meta.update_one({'name': name, 'date': date}, {'$set': {PROCESSED_FIELD: processed}})
 
     def has_race(self, name, date):
         return self._get_race_id(name, date) != None

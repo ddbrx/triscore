@@ -1,5 +1,27 @@
-# https://linuxize.com/post/how-to-add-swap-space-on-ubuntu-18-04/
+# Allocate using dd
+https://www.cyberciti.biz/faq/linux-add-a-swap-file-howto/
 
+# as sudo
+sudo -s
+
+# allocate
+dd if=/dev/zero of=/swapfile bs=6044 count=1048576
+
+# permissions
+chmod 0600 /swapfile
+
+# make swap
+mkswap /swapfile
+
+# swapon
+swapon /swapfile
+
+# add to /etc/fstab
+/swapfile none swap sw 0 0
+
+
+# Allocate using fallocate
+https://linuxize.com/post/how-to-add-swap-space-on-ubuntu-18-04/
 
 # Creating a Swap File
 ---

@@ -33,7 +33,7 @@ def ironman_and_t5150_filter(race):
 
 
 def main():
-    storage = DataStorage(collection_name='ironman')
+    storage = DataStorage(collection_name='ironman-loaded')
     updated_ids = storage.update(
         id_fields=['SubEventId'],
         list_url=url.RACES_URL,
@@ -44,7 +44,7 @@ def main():
         data_url_transformer=get_data_url,
         dry_run=False,
         add_invalid=True,
-        limit=10)
+        limit=-1)
     logger.info(f'{len(updated_ids)} items updated')
 
 

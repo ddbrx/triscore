@@ -6,7 +6,7 @@ from pymongo import MongoClient, ASCENDING, DESCENDING
 from base import log, http
 from time import sleep
 
-logger = log.setup_logger(__file__)
+logger = log.setup_logger(__file__, debug=True)
 
 SCRIPT_DIR = Path(__file__).parent
 

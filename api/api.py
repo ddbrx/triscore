@@ -22,8 +22,8 @@ RACES_BATCH_SIZE = 101
 RACES_DB = 'races-v0-1'
 
 SCORES_DB = 'triscore'
-SCORES_COLLECTION = 'scores'
-# SCORES_COLLECTION = 'scores-A-16-B-20-C-3-D-3'
+# SCORES_COLLECTION = 'scores'
+SCORES_COLLECTION = 'scores-f8-A-6-B-13-C-1-D-1'
 
 
 def add_rel_index(iterable, start_index):

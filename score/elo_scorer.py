@@ -17,10 +17,10 @@ START_SCORE = 1500
 MIN_GROUP_SIZE = 10
 
 
-DEFAULT_A = 3
-DEFAULT_B = 16
-DEFAULT_C = 2
-DEFAULT_D = 1
+DEFAULT_A = 6
+DEFAULT_B = 12
+DEFAULT_C = 3
+DEFAULT_D = 0
 
 A = 0
 B = 0
@@ -33,15 +33,17 @@ def get_elo_win_probability(ra, rb):
 
 
 def get_race_type_multiplier(race_type):
-    race_type_to_multiplier = {
-        'supersprint': 1.,
-        'sprint': 2.,
-        'olympic': 4.,
-        'half': 8.,
-        'full': 16.
-    }
-    assert race_type in race_type_to_multiplier, f'invalid race type: {race_type}'
-    return race_type_to_multiplier[race_type]
+    if race_type.find('supersprint') != -1:
+        return 0.5
+    elif race_type.find('sprint') != -1:
+        return 1.
+    elif race_type.find('olympic') != -1:
+        return 2.
+    elif race_type.find('half') != -1:
+        return 4.
+    elif race_type.find('full') != -1:
+        return 8.
+    assert False, f'invalid race type: {race_type}'
 
 
 def get_score_multiplier(rank_delta, score):
@@ -69,10 +71,10 @@ def get_score_multiplier(rank_delta, score):
         # x = max(base, base + 12 - score / 250.)
         # return max(A, math.log(x, base))
 
-        # formula 7,8
-        base = B * 0.1
-        x = max(base, 12 + base - score / 250.)
-        return A * max(4, math.log(x, base))
+        # # formula 7,8,11
+        # base = B * 0.1
+        # x = max(base, 12 + base - score / 250.)
+        # return A * max(4, math.log(x, base))
 
         # formula 9
         # 1000 -> 50
@@ -83,6 +85,34 @@ def get_score_multiplier(rank_delta, score):
         # 1000 -> 40
         # 3000 -> 20
         # return max(10., 50. - score / 100.)
+
+        # formula 12
+        # 1000 -> 40
+        # 3000 -> 20
+        # base = B * 0.1
+        # x = max(base, 10 + base - score / 350.)
+        # return A * max(4, math.log(x, base))
+
+        # # formula 13
+        # # 1000 -> 40
+        # # 3000 -> 20
+        # base = B * 0.1
+        # x = max(base, 10 + base - score / 400.)
+        # return A * max(4, math.log(x, base))
+
+        # # formula 15
+        # # 1000 -> 47
+        # # 3000 -> 30
+        # base = B * 0.1
+        # x = max(base, 10 + base - score / 400.)
+        # return A * max(6, math.log(x, base))
+
+        # formula 16,17,18
+        # 1000 -> 47
+        # 3000 -> 30
+        base = B * 0.1
+        x = max(base, 10 + base - score / 500.)
+        return A * math.log(x, base)
     else:
         # 1000 -> 1
         # 3000 -> 1 + C
@@ -93,40 +123,45 @@ def get_score_multiplier(rank_delta, score):
         # x = max(base, base + 12 - (4000 - score) / 250.)
         # return max(C, min(50, math.log(x, base)))
 
-        # formula7,8
-        base = B * 0.1
-        x = max(base, 12 + base - (4000 - score) / 250.)
-        return C * math.log(x, base)
+        # # formula7,8,11
+        # base = B * 0.1
+        # x = max(base, 12 + base - (4000 - score) / 250.)
+        # return C * math.log(x, base)
 
         # formula 9,10
         # 1000 -> 5
         # 3000 -> 10
         # return min(10, 2.5 + score / 400.)
 
-def get_dnf_multiplier(finish_status, score):
+        # # formula 12
+        # base = B * 0.1
+        # x = max(base, 10 + base - (4000 - score) / 350.)
+        # return C * math.log(x, base)
+
+        # # formula 13,14,15
+        # base = B * 0.1
+        # x = max(base, 10 + base - (4000 - score) / 400.)
+        # return C * math.log(x, base)
+
+        # # formula 16
+        # base = B * 0.1
+        # x = max(base, 10 + base - (4000 - score) / 500.)
+        # return C * math.log(x, base)
+
+        # formula 18
+        base = B * 0.1
+        x = max(base, 10 + base - (4000 - score) / 400.)
+        return C * math.log(x, base)
+
+
+def get_finish_multiplier(rank_delta, finish_status, score):
     if finish_status == 'ok':
-        return 1.
+        if rank_delta >= 0:
+            return 1.2
+        else:
+            return 0.8
     elif finish_status == 'DNS':
         return 0.
-
-    # formula 1-6
-    # 1000 -> 1
-    # 3000 -> 1 + D
-    # return max(1., 1 + D * (score - 1000.) / 2000.)
-
-    # formula 7
-    # return 1.
-
-    # formula 8
-    # 1000 -> 1
-    # 3000 -> 1 + D
-    return max(1., 1 + D * (score - 1000.) / 2000.)
-
-
-def get_first_time_multiplier(score):
-    # if score == START_SCORE:
-    #     return 1. / 3
-
     return 1.
 
 
@@ -211,6 +246,8 @@ class EloScorer:
             is_finished = finish_status == race_builder.FINISH_STATUS_OK
 
             virtual_seed_rank = 1.
+            virtual_time_rank = race_parser.get_age_group_rank(result)
+
             athlete_score = score_by_id[athlete_id]
             athlete_race_count = races_count_by_id[athlete_id]
 
@@ -222,32 +259,30 @@ class EloScorer:
                 virtual_seed_rank += get_elo_win_probability(
                     other_score, athlete_score)
 
-            if real_age_group_size < virtual_age_group_size:
-                vr_group_size_diff = virtual_age_group_size - real_age_group_size
-                start_win_prob = get_elo_win_probability(
-                    START_SCORE, athlete_score)
-                virtual_seed_rank += vr_group_size_diff * start_win_prob
-
-            virtual_time_rank = race_parser.get_age_group_rank(result)
             if is_finished:
+                if real_age_group_size < virtual_age_group_size:
+                    vr_group_size_diff = virtual_age_group_size - real_age_group_size
+                    start_win_prob = get_elo_win_probability(
+                        START_SCORE, athlete_score)
+                    virtual_seed_rank += vr_group_size_diff * start_win_prob
+
                 if max_time_diff > 0:
                     time_diff = finish_time - fastest_time
-                    virtual_time_rank = 1 + 1. * (virtual_age_group_size - 1) * \
+                    # here real_age_group_size is important
+                    virtual_time_rank = 1 + 1. * (real_age_group_size - 1) * \
                         time_diff / max_time_diff
-            else:
-                virtual_time_rank = virtual_age_group_size
 
             rank_delta = (virtual_seed_rank - virtual_time_rank) / \
                 (virtual_age_group_size - 1)
             score_multiplier = get_score_multiplier(rank_delta, athlete_score)
-            dnf_multiplier = get_dnf_multiplier(finish_status, athlete_score)
-            first_time_multiplier = get_first_time_multiplier(athlete_score)
+            finish_multiplier = get_finish_multiplier(
+                rank_delta, finish_status, athlete_score)
 
             if not is_finished:
                 assert rank_delta <= 0, f'positive delta for DNF result: {result}'
 
             score_delta = round(
-                rank_delta * race_type_multiplier * score_multiplier * dnf_multiplier * first_time_multiplier)
+                rank_delta * race_type_multiplier * score_multiplier * finish_multiplier)
 
             new_score = athlete_score + score_delta
             new_race_count = athlete_race_count + 1
@@ -306,7 +341,7 @@ class EloScorer:
                     'vrd': rank_delta,
                     'race_m': race_type_multiplier,
                     'score_m': score_multiplier,
-                    'dnf_m': dnf_multiplier
+                    'dnf_m': finish_multiplier
                 })
 
             athlete_name = race_parser.get_athlete_name(result)
@@ -370,7 +405,8 @@ def main():
         scores_collection=args.scores_collection, prod=args.prod)
     race_storage = RaceStorage()
 
-    races = race_storage.get_races(skip=args.skip, limit=args.limit, batch_size=10)
+    races = race_storage.get_races(
+        skip=args.skip, limit=args.limit, batch_size=10)
     race_count = races.count()
 
     def print_distribution(index=None):

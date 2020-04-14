@@ -8,10 +8,10 @@
 # SCORES="scores-A-$A-B-$B-C-$C-D-$D"
 # PYTHONPATH=./ python3 score/elo_scorer.py --log-file .tmp/prod/log_A_"$A"_B_"$B"_C_"$C"_D_"$D".txt --scores-collection $SCORES --prod
 
-for B in {13..13}; do
-    for A in {6..6..3}; do
-        for C in {1..1..1}; do
-            for D in {1..1}; do
+for B in {12..12}; do
+    for A in {6..6..1}; do
+        for C in {3..3..1}; do
+            for D in {0..0}; do
                 # if (( A < B / 5 )); then
                 # 	continue
                 # fi
@@ -21,7 +21,7 @@ for B in {13..13}; do
                 # fi
 
                 echo "B: $B A: $A C: $C D:$D"
-                PYTHONPATH=./ python3 score/elo_scorer.py --A=$A --B=$B --C=$C --D=$D --log-file .tmp/perebor_formula8_again/A_"$A"_B_"$B"_C_"$C"_D_"$D".txt
+                PYTHONPATH=./ python3 score/elo_scorer.py --A=$A --B=$B --C=$C --D=$D --log-file .tmp/perebor_formula18/A_"$A"_B_"$B"_C_"$C"_D_"$D".txt
             done
         done
     done

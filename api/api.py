@@ -17,6 +17,7 @@ app = Flask(__name__)
 CORS(app)
 
 MAX_ITEMS_LIMIT = 100
+RACES_BATCH_SIZE = 101
 
 RACES_DB = 'races-v0-1'
 
@@ -72,7 +73,8 @@ def races():
         sort_field=sort_field,
         sort_order=sort_order,
         skip=index_from,
-        limit=limit)
+        limit=limit,
+        batch_size=RACES_BATCH_SIZE)
 
     total_count = races.count(with_limit_and_skip=False)
     data = {

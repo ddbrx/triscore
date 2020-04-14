@@ -69,16 +69,20 @@ def get_score_multiplier(rank_delta, score):
         # x = max(base, base + 12 - score / 250.)
         # return max(A, math.log(x, base))
 
-        # formula 7
-        # base = B * 0.1
-        # x = max(base, 12 + base - score / 250.)
-        # return A * max(4, math.log(x, base))
-
+        # formula 7,8
+        base = B * 0.1
+        x = max(base, 12 + base - score / 250.)
+        return A * max(4, math.log(x, base))
 
         # formula 9
         # 1000 -> 50
         # 3000 -> 30
-        return max(1., 60. - score / 100.)
+        # return max(1., 60. - score / 100.)
+
+        # formula 10
+        # 1000 -> 40
+        # 3000 -> 20
+        # return max(10., 50. - score / 100.)
     else:
         # 1000 -> 1
         # 3000 -> 1 + C
@@ -89,19 +93,15 @@ def get_score_multiplier(rank_delta, score):
         # x = max(base, base + 12 - (4000 - score) / 250.)
         # return max(C, min(50, math.log(x, base)))
 
-        # formula7
-        # base = B * 0.1
-        # x = max(base, 12 + base - (4000 - score) / 250.)
-        # return C * math.log(x, base)
+        # formula7,8
+        base = B * 0.1
+        x = max(base, 12 + base - (4000 - score) / 250.)
+        return C * math.log(x, base)
 
-        # 1000 -> 30/C
-        # 3000 -> 50/C
-        # return min(30, (60. - (4000 - x) / 100.)) / C
-
-        # formula 9
+        # formula 9,10
         # 1000 -> 5
         # 3000 -> 10
-        return max(10, min(5., 2.5 + score / 400.))
+        # return min(10, 2.5 + score / 400.)
 
 def get_dnf_multiplier(finish_status, score):
     if finish_status == 'ok':
@@ -370,7 +370,7 @@ def main():
         scores_collection=args.scores_collection, prod=args.prod)
     race_storage = RaceStorage()
 
-    races = race_storage.get_races(skip=args.skip, limit=args.limit)
+    races = race_storage.get_races(skip=args.skip, limit=args.limit, batch_size=10)
     race_count = races.count()
 
     def print_distribution(index=None):

@@ -16,7 +16,7 @@ class RaceStorage:
         if create_indices:
             RaceStorage._create_meta_indices(self.races_meta)
 
-    def get_races(self, name='', country='', race_type='', sort_field='date', sort_order=1, skip=0, limit=0, exact=False, projection={}):
+    def get_races(self, name='', country='', race_type='', sort_field='date', sort_order=1, skip=0, limit=0, exact=False, projection={}, batch_size=10):
         projection.update({'_id': 0})
         sort = [(sort_field, sort_order)]
 
@@ -26,7 +26,8 @@ class RaceStorage:
         return self.races_meta.find(
             query,
             sort=sort,
-            projection=projection
+            projection=projection,
+            batch_size=batch_size
         ).skip(skip).limit(limit)
 
     def count_races(self, name=None, date=None):

@@ -3,7 +3,7 @@ import argparse
 import json
 import time
 
-from flask import Flask, request
+from flask import Blueprint, Flask, request
 from flask_cors import CORS
 
 from base import log
@@ -12,9 +12,7 @@ from score.storage import ScoreStorage
 
 logger = log.setup_logger(__file__)
 
-
-app = Flask(__name__)
-CORS(app)
+api_v1 = Blueprint('api_v1', __name__, template_folder='templates_v1')
 
 MAX_ITEMS_LIMIT = 100
 RACES_BATCH_SIZE = 101
@@ -23,7 +21,8 @@ RACES_DB = 'races-v0-1'
 
 SCORES_DB = 'triscore'
 # SCORES_COLLECTION = 'scores'
-SCORES_COLLECTION = 'scores-f8-A-6-B-13-C-1-D-1'
+# SCORES_COLLECTION = 'scores-f8-A-6-B-13-C-1-D-1'
+SCORES_COLLECTION = 'scores-f18-A-6-B-12-C-3-D-0'
 
 
 def add_rel_index(iterable, start_index):
@@ -34,7 +33,12 @@ def add_rel_index(iterable, start_index):
     return items
 
 
-@app.route('/races')
+@api_v1.route('/status')
+def status():
+    return 'OK', 200
+
+
+@api_v1.route('/races')
 def races():
     race_storage = RaceStorage()
 
@@ -84,7 +88,7 @@ def races():
     return data, 200
 
 
-@app.route('/race-info')
+@api_v1.route('/race-info')
 def race_info():
     race_storage = RaceStorage()
 
@@ -107,7 +111,7 @@ def race_info():
     return data, 200
 
 
-@app.route('/race-results')
+@api_v1.route('/race-results')
 def race_results():
     score_storage = ScoreStorage(
         collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
@@ -166,7 +170,7 @@ def race_results():
     return data, 200
 
 
-@app.route('/athletes')
+@api_v1.route('/athletes')
 def athletes():
     score_storage = ScoreStorage(
         collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
@@ -212,7 +216,7 @@ def athletes():
     return data, 200
 
 
-@app.route('/athlete-details')
+@api_v1.route('/athlete-details')
 def athlete_details():
     score_storage = ScoreStorage(
         collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
@@ -225,6 +229,10 @@ def athlete_details():
     }
     return data, 200
 
+
+app = Flask(__name__)
+app.register_blueprint(api_v1, url_prefix='/api/v1')
+CORS(app)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')

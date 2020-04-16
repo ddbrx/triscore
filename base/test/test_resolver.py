@@ -1,5 +1,5 @@
 import pytest
-from resolver import LocationResolver
+from base.location.resolver import LocationResolver
 
 
 class TestGetOneAndOnlyCountry:

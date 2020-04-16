@@ -27,7 +27,8 @@ def get_athlete_id(result):
 
 
 def get_athlete_name(result):
-    return result['n']
+    n = result['n']
+    return n if n else ''
 
 
 def get_country_fifa_code(result):

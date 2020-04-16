@@ -1,5 +1,5 @@
 import pytest
-import translit
+from base import translit
 
 
 def assert_eq(result, expected):
@@ -62,7 +62,7 @@ class TestTranslitWord:
         ru_to_en('ярошенко', ['yaroshenko'])
         en_to_ru('yaroshenko', 'ярошенко')
 
-    def test_yе(self):
+    def test_ye(self):
         ru_to_en('турбаевский', ['turbaevskii', 'turbaevskiy'])
         en_to_ru('turbaevskii', 'турбаевский')
         en_to_ru('turbaevskiy', 'турбаевский')
@@ -127,6 +127,7 @@ class TestTranslitSentence:
         ru_to_en('игорь крутой', ['igor krutoi', 'igor krutoy'])
         en_to_ru('igor krutoi', 'игорь крутой')
         en_to_ru('igor krutoy', 'игорь крутой')
+
 
 class TestTranslitCustomNames:
     def test_jan(self):

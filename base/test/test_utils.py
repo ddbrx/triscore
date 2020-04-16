@@ -1,4 +1,4 @@
-import utils
+from base import utils
 
 
 class TestGetSubsentences:

@@ -48,107 +48,10 @@ def get_race_type_multiplier(race_type):
 
 def get_score_multiplier(rank_delta, score):
     if rank_delta > 0:
-        # x = max(2., -score + 3500.)
-        # return A * math.log(x, B * 0.1)
-
-        # formula2
-        # base = B * 0.1
-        # x = max(base, 12 + base - score / 250.)
-        # return A * math.log(x, base)
-
-        # formula3 (3000)
-        # base = B * 0.1
-        # x = max(base, base + 60 - score / 50.)
-        # return A * math.log(x, base)
-
-        # # formula4 (2500)
-        # base = B * 0.01
-        # x = max(base, base + 50 - score / 50.)
-        # return min(A, math.log(x, base))
-
-        # formula5 (3000)
-        # base = B * 0.01
-        # x = max(base, base + 12 - score / 250.)
-        # return max(A, math.log(x, base))
-
-        # # formula 7,8,11
-        # base = B * 0.1
-        # x = max(base, 12 + base - score / 250.)
-        # return A * max(4, math.log(x, base))
-
-        # formula 9
-        # 1000 -> 50
-        # 3000 -> 30
-        # return max(1., 60. - score / 100.)
-
-        # formula 10
-        # 1000 -> 40
-        # 3000 -> 20
-        # return max(10., 50. - score / 100.)
-
-        # formula 12
-        # 1000 -> 40
-        # 3000 -> 20
-        # base = B * 0.1
-        # x = max(base, 10 + base - score / 350.)
-        # return A * max(4, math.log(x, base))
-
-        # # formula 13
-        # # 1000 -> 40
-        # # 3000 -> 20
-        # base = B * 0.1
-        # x = max(base, 10 + base - score / 400.)
-        # return A * max(4, math.log(x, base))
-
-        # # formula 15
-        # # 1000 -> 47
-        # # 3000 -> 30
-        # base = B * 0.1
-        # x = max(base, 10 + base - score / 400.)
-        # return A * max(6, math.log(x, base))
-
-        # formula 16,17,18
-        # 1000 -> 47
-        # 3000 -> 30
         base = B * 0.1
         x = max(base, 10 + base - score / 500.)
         return A * math.log(x, base)
     else:
-        # 1000 -> 1
-        # 3000 -> 1 + C
-        # return max(1., 1 + C * (score - 1000.) / 2000.)
-
-        # formula6 (negative simmetric to f5)
-        # base = B * 0.01
-        # x = max(base, base + 12 - (4000 - score) / 250.)
-        # return max(C, min(50, math.log(x, base)))
-
-        # # formula7,8,11
-        # base = B * 0.1
-        # x = max(base, 12 + base - (4000 - score) / 250.)
-        # return C * math.log(x, base)
-
-        # formula 9,10
-        # 1000 -> 5
-        # 3000 -> 10
-        # return min(10, 2.5 + score / 400.)
-
-        # # formula 12
-        # base = B * 0.1
-        # x = max(base, 10 + base - (4000 - score) / 350.)
-        # return C * math.log(x, base)
-
-        # # formula 13,14,15
-        # base = B * 0.1
-        # x = max(base, 10 + base - (4000 - score) / 400.)
-        # return C * math.log(x, base)
-
-        # # formula 16
-        # base = B * 0.1
-        # x = max(base, 10 + base - (4000 - score) / 500.)
-        # return C * math.log(x, base)
-
-        # formula 18
         base = B * 0.1
         x = max(base, 10 + base - (4000 - score) / 400.)
         return C * math.log(x, base)

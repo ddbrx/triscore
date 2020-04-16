@@ -19,7 +19,8 @@ def gen_dicts(ds, lj=20, filter_keys=[]):
 
     for d in ds:
         values = [d[key] for key in keys]
-        line = ' '.join([str(get_rounded_value(value)).ljust(lj) for value in values])
+        line = ' '.join([str(get_rounded_value(value)).ljust(lj)
+                         for value in values])
         yield line
 
 
@@ -30,3 +31,17 @@ def get_subsentences(sentence):
         for i in range(0, len(words) + 1 - length):
             subsentences.append(' '.join(words[i:i + length]))
     return subsentences
+
+
+def get_key_with_min_value(d):
+    return _get_key_with_extreme_value(d, extreme=-1)
+
+
+def get_key_with_max_value(d):
+    return _get_key_with_extreme_value(d, extreme=1)
+
+
+def _get_key_with_extreme_value(d, extreme):
+    assert extreme == 1 or extreme == -1
+    sort = -1 if extreme == 1 else 1
+    return sorted(d.items(), key=lambda item: sort * item[1])[0][0]

@@ -64,6 +64,16 @@ class RaceStorage:
             projection=projection
         ).skip(skip).limit(limit)
 
+    def update_athlete_id(self, race_date, race_name, source_athlete_id, target_athlete_id):
+        race_id = self._get_race_id(name, date)
+        if not race_id:
+            logger.warning(
+                f'no race found to update athlete id: {race_name} {race_date}')
+            return False
+
+        race_collection = self.db[race_id]
+        return race_collection.update_one({'id': source_athlete_id}, {'$set': {'id': target_athlete_id}})
+
     def add_race(self, info, results):
         race_name = info['name']
         race_date = info['date']
@@ -87,11 +97,13 @@ class RaceStorage:
         race_id = self._get_race_id(name, date)
         if not race_id:
             logger.warning(f'no race found to remove: {name} {date}')
-            return
+            return False
 
         logger.info(f'remove race meta {name} {date} {race_id}')
         self.races_meta.remove({'_id': ObjectId(race_id)})
+        logger.info(f'drop race data {race_id}')
         self.db[race_id].drop()
+        return True
 
     def get_race_length(self, name, date):
         race_id = self._get_race_id(name, date)

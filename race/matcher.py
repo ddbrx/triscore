@@ -51,16 +51,20 @@ def process_race(race_name, race_date, race_country, race_results, name_map):
 
         if athlete_id not in name_map[athlete_name]:
             name_map[athlete_name][athlete_id] = {
-                'dmin': dt.datetime(1930, 1, 1), 'dmax': dt.delta(dt.now(), years=18), 'races': []}
+                'dmin': dt.datetime(1900, 1, 1), 'dmax': dt.delta(dt.now(), years=18), 'races': []}
 
         age_group = race_parser.get_age_group(race_result)
         min_birth_date, max_birth_date = get_min_max_birth_dates(
             age_group, dt.date_from_string(race_date))
+        assert min_birth_date <= max_birth_date, f'min birth date more than max birth date athlete_id: {athlete_id}'
 
         name_map[athlete_name][athlete_id]['dmin'] = max(
             name_map[athlete_name][athlete_id]['dmin'], min_birth_date)
         name_map[athlete_name][athlete_id]['dmax'] = min(
             name_map[athlete_name][athlete_id]['dmax'], max_birth_date)
+
+        # assert name_map[athlete_name][athlete_id]['dmin'] <= name_map[athlete_name][athlete_id]['dmax'], f'min date more than max date athlete_id: {athlete_id} {athlete_name} {race_name} {race_date}'
+
         name_map[athlete_name][athlete_id]['races'].append(
             {'rd': race_date, 'rn': race_name, 'rc': race_country, 'a': age_group, 'c': athlete_country})
 
@@ -121,8 +125,8 @@ def main():
         process_race(race_name, race_date, race_country,
                      race_results, name_map)
 
-    insert_to_mongo(name_map, db_name=args.db_name,
-                    collection_name=args.collection_name)
+    # insert_to_mongo(name_map, db_name=args.db_name,
+    #                 collection_name=args.collection_name)
 
 
 if __name__ == '__main__':

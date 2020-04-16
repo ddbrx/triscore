@@ -68,7 +68,8 @@ def process_race(race_name, race_date, race_country, race_results, name_map):
 def insert_to_mongo(name_map, db_name, collection_name):
     mongo_client = MongoClient()
     collection = mongo_client[db_name][collection_name]
-    collection.create_index('n')
+    collection.create_index('n', unique=True)
+    collection.create_index('len')
     collection.create_index('l.id')
 
     for athlete_name, id_map in name_map.items():
@@ -86,6 +87,7 @@ def insert_to_mongo(name_map, db_name, collection_name):
 
         nc_info = {
             'n': athlete_name,
+            'len': len(nc_athletes),
             'l': nc_athletes
         }
 

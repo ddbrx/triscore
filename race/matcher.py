@@ -98,6 +98,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--skip', type=int, default=0)
     parser.add_argument('--limit', type=int, default=0)
+    parser.add_argument('--db-name', type=str, default='triscore-test')
+    parser.add_argument('--collection-name', type=str, default='matcher')
 
     args = parser.parse_args()
 
@@ -117,8 +119,8 @@ def main():
         process_race(race_name, race_date, race_country,
                      race_results, name_map)
 
-    insert_to_mongo(name_map, db_name='triscore-test',
-                    collection_name='matcher')
+    insert_to_mongo(name_map, db_name=args.db_name,
+                    collection_name=args.collection_name)
 
 
 if __name__ == '__main__':

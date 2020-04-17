@@ -65,7 +65,7 @@ class RaceStorage:
         ).skip(skip).limit(limit)
 
     def update_athlete_id(self, race_date, race_name, source_athlete_id, target_athlete_id):
-        race_id = self._get_race_id(name, date)
+        race_id = self._get_race_id(race_name, race_date)
         if not race_id:
             logger.warning(
                 f'no race found to update athlete id: {race_name} {race_date}')

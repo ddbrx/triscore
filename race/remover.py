@@ -9,12 +9,9 @@ logger = log.setup_logger(__file__, debug=True)
 def remove_race(db_name, race_name, race_date):
     race_storage = RaceStorage(dbname=db_name)
     try:
-        if race_storage.remove_race(name=race_name, date=race_date):
-            logger.info(f'race {race_name} {race_date} was successully removed')
-        else:
-            logger.warning(f'failed to remove race: {race_name} {race_date}: {exc}')
-    except Exception as exc:
-        logger.error(f'exception while removing race: {race_name} {race_date}: {exc}')
+        race_storage.remove_race(name=race_name, date=race_date)
+    except Exception as exception:
+        logger.error(f'exception while removing race: {race_name} {race_date}: {repr(exception)}')
 
 
 def main():

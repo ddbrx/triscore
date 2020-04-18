@@ -15,5 +15,7 @@ ironman = db.getCollection('ironman')
 
 // ironman.find({'SubEvent': /IRONMAN/}, {SubEvent: 1}).sort({_id: -1})
 // ironman.find({'SubEvent': /2002 IRONMAN Florida/}).sort({SubEvent: -1})
-ironman.aggregate([{'$match': {'SubEvent': '002 IRONMAN Florida'}}, {'$unwind': '$data'}, {'$sort': {'data.FinishRankOverall': 1}}, {'$skip': 0}, {'$limit': 0}])
+// ironman.aggregate([{'$match': {'SubEvent': '002 IRONMAN Florida'}}, {'$unwind': '$data'}, {'$sort': {'data.FinishRankOverall': 1}}, {'$skip': 0}, {'$limit': 0}])
+
+// ironman.updateOne({SubEventId: '0E43C278-7D5A-E211-B7A2-005056956277'}, {'$set': {invalid: true}})
 // ironman.count()

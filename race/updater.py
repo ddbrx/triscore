@@ -29,7 +29,7 @@ class Updater:
         self.prod = prod
 
     def update(self, skip, limit, prod=False):
-        matches = self.matcher_collection.find({'len': {'$gt': 1, '$lt': 100}}, sort=[
+        matches = self.matcher_collection.find({'len': {'$gt': 1}}, sort=[
             ('len', -1)]).skip(skip).limit(limit)
         count = matches.count()
         id_replaced = 0
@@ -40,7 +40,6 @@ class Updater:
 
             athletes = match['l']
             athlete_by_country = get_athlete_by_country(athletes)
-            # logger.debug(athlete_by_country)
 
             no_country_athletes = athlete_by_country.get('', [])
             no_country_athlete_used = len(no_country_athletes) == 0
@@ -62,11 +61,10 @@ class Updater:
                     return int(d.replace('-', ''))
 
                 logger.debug(f'{country} {len(athletes)}')
-                sorted_by_first_race = sorted(
-                    athletes, key=lambda a: date_as_int(a['races'][0]['rd']))
-                # logger.debug(f'sorted: {sorted_by_first_race}')
-                source_athlete = sorted_by_first_race[1]
-                target_athlete = sorted_by_first_race[0]
+                sorted_by_first_race = sorted(athletes, key=lambda a: a['races'][-1]['rd'])
+
+                source_athlete = sorted_by_first_race[0]
+                target_athlete = sorted_by_first_race[1]
 
                 id_replaced += self.replace_athlete(
                     athlete_name, source_athlete, target_athlete)
@@ -75,19 +73,18 @@ class Updater:
 
     def replace_athlete(self, athlete_name, source_athlete, target_athlete):
         if not self.dates_of_birth_intersection(source_athlete, target_athlete):
+            logger.debug(f'filter by date of birth\nsource: {source_athlete}\ntarget: {target_athlete}')
             return False
 
         if self.races_intersect(source_athlete['races'], target_athlete['races']):
-            return False
-
-        if source_athlete['races'][-1]['rd'] > target_athlete['races'][0]['rd']:
+            logger.debug(f'filter by race intersection\nsource: {source_athlete}\ntarget: {target_athlete}')
             return False
 
         source_id = source_athlete['id']
         source_races = source_athlete['races']
         target_id = target_athlete['id']
         logger.debug(
-            f'{athlete_name}: {len(source_races)} {source_id} -> {target_id}')
+            f'DUPLICATE {athlete_name}: {len(source_races)} {source_id} -> {target_id}')
 
         for race in source_races:
             self.update_id(race=race, source_id=source_id, target_id=target_id)

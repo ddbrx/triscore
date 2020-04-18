@@ -1,8 +1,5 @@
-import json
-import re
 from pymongo import MongoClient, ASCENDING, DESCENDING
-
-from base import dt, log
+from base import log, translit
 
 
 logger = log.setup_logger(__file__, debug=True)
@@ -17,26 +14,28 @@ class ScoreStorage:
         if create_indices:
             self._create_indices()
 
-    def get_top_athletes(self, name='', country='', age_group = '', sort_field='s', sort_order=DESCENDING, skip=0, limit=0):
+    def get_top_athletes(self, name='', country='', age_group='', sort_field='s', sort_order=DESCENDING, skip=0, limit=0):
         projection = {'_id': 0, 'h': 0, 'prefixes': 0}
         sort = [(sort_field, sort_order)]
 
         where = {}
-        if country:
-            where['c'] = country
+        if country and country.strip():
+            where['c'] = country.strip()
 
-        if age_group:
-            where['a'] = age_group
+        if age_group and age_group.strip():
+            where['a'] = age_group.strip()
 
         query = {}
-        name = name.strip()
-        if name:
-            is_complex_filter = name.find(' ') != -1
-            if is_complex_filter:
+        if name and name.strip():
+            options = [name.strip()]
+            if name.find(' ') != -1:
                 # exact search
-                name = f'\"{name}\"'
+                options = list(map(lambda x: '\"' + x + '\"', options))
+            elif translit.has_cyrillic(name):
+                options.extend(translit.cyrillic_to_english(name))
 
-            text_query = {'$text': {'$search': name}}
+            search = ' '.join(options)
+            text_query = {'$text': {'$search': search}}
             if len(where) > 0:
                 query['$and'] = [
                     where,

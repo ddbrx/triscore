@@ -1,6 +1,6 @@
 from bson import ObjectId
 from pymongo import MongoClient
-from base import log
+from base import log, translit
 
 logger = log.setup_logger(__file__)
 
@@ -16,12 +16,12 @@ class RaceStorage:
         if create_indices:
             RaceStorage._create_meta_indices(self.races_meta)
 
-    def get_races(self, name='', country='', race_type='', sort_field='date', sort_order=1, skip=0, limit=0, exact=False, projection={}, batch_size=10):
+    def get_races(self, name='', country='', race_type='', sort_field='date', sort_order=1, skip=0, limit=0, projection={}, batch_size=10):
         projection.update({'_id': 0})
         sort = [(sort_field, sort_order)]
 
         query = self._get_athlete_and_country_query(
-            name, country, race_type=race_type, country_field='location.c', exact=exact)
+            name, country, race_type=race_type, country_field='location.c')
         logger.info(f'query: \'{query}\'')
         return self.races_meta.find(
             query,
@@ -46,7 +46,7 @@ class RaceStorage:
             return race_meta
         return {}
 
-    def get_race_results(self, race_name, race_date, athlete_filter='', country_filter='', age_group_filter='', sort_field='or', sort_order=1, skip=0, limit=0, exact=False):
+    def get_race_results(self, race_name, race_date, athlete_filter='', country_filter='', age_group_filter='', sort_field='or', sort_order=1, skip=0, limit=0):
         race_id = self._get_race_id(race_name, race_date)
         if not race_id:
             log.error(
@@ -55,7 +55,7 @@ class RaceStorage:
 
         race_collection = self.db[race_id]
         query = self._get_athlete_and_country_query(
-            athlete_filter, country_filter, age_group_filter=age_group_filter, country_field='c', exact=exact)
+            athlete_filter, country_filter, age_group_filter=age_group_filter, country_field='c')
         projection = {'_id': 0}
         sort = [(sort_field, sort_order)]
         return race_collection.find(
@@ -126,7 +126,7 @@ class RaceStorage:
     def has_race(self, name, date):
         return self._get_race_id(name, date) != None
 
-    def _get_athlete_and_country_query(self, name, country, race_type='', age_group_filter='', country_field='c', exact=False):
+    def _get_athlete_and_country_query(self, name, country, race_type='', age_group_filter='', country_field='c'):
         conditions = []
         if country and country.strip():
             conditions.append({country_field: country.strip()})
@@ -138,10 +138,15 @@ class RaceStorage:
             conditions.append({'type': race_type.strip()})
 
         if name and name.strip():
-            name = name.strip()
-            if exact:
-                name = f'\"{name}\"'
-            conditions.append({'$text': {'$search': name}})
+            options = [name.strip()]
+            if name.find(' ') != -1:
+                # exact search
+                options = list(map(lambda x: '\"' + x + '\"', options))
+            elif translit.has_cyrillic(name):
+                options.extend(translit.cyrillic_to_english(name))
+
+            search = ' '.join(options)
+            conditions.append({'$text': {'$search': search}})
 
         query = {}
         if len(conditions) > 1:

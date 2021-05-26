@@ -96,7 +96,7 @@ def main():
     races_storage = DataStorage(
         db_name='ironman_races', collection_name='races')
 
-    # load_races(races_storage)
+    load_races(races_storage)
     load_results(races_storage, db_name='ironman_results')
 
 

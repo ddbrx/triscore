@@ -11,19 +11,14 @@ def data_transformer(item):
     return item['data']
 
 
+def is_ironman_full_or_half(race):
+    brand = parser.get_event_brand(race)
+    return brand == "IRONMAN" or brand == "IRONMAN 70.3"
+
+
 def is_race(race):
     subevent_type = parser.get_subevent_type(race)
     return subevent_type == 'Race'
-
-
-def is_ironman(race):
-    name = parser.get_event_name(race)
-    return name.lower().find('ironman') != -1
-
-
-def is_t5150(race):
-    name = parser.get_event_name(race)
-    return name.lower().find('5150') == -1
 
 
 def is_date_in_the_past(race):
@@ -33,7 +28,7 @@ def is_date_in_the_past(race):
 
 
 def ironman_race_date_filter(race):
-    valid_race = is_race(race) and is_ironman(race) and is_date_in_the_past(race)
+    valid_race = is_race(race) and is_ironman_full_or_half(race) and is_date_in_the_past(race)
     return not valid_race
 
 
@@ -58,7 +53,7 @@ def load_races(races_storage):
             logger.info(f'no races found url: {races_batch_url}: break')
             break
         else:
-            logger.info(f'{len(updated_ids)} items updated')
+            logger.info(f'url: {races_batch_url} updated: {len(updated_ids)}')
 
 
 def load_results(races_storage, db_name):

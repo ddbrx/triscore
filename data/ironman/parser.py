@@ -55,13 +55,8 @@ def get_event_date(race):
     return race['Date']
 
 
-def is_field_true(item, field):
-    return field in item and item[field]
-
-
-def get_brand(race):
-    name = get_event_name(race)
-    return name.split()[1]
+def get_event_brand(race):
+    return race['Brand']
 
 
 def get_results(race):

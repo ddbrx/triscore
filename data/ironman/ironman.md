@@ -1,4 +1,5 @@
-# races
+# Data loading
+## Races
 https://api.competitor.com/public/events?%24limit=10&%24skip=0
 {
     "total": 7697,
@@ -48,7 +49,7 @@ https://api.competitor.com/public/events?%24limit=10&%24skip=0
     ]
 }
 
-# race results
+## Race results
 https://api.competitor.com/public/result/subevent/660190D0-BA16-E511-9402-005056951BF1?%24limit=10&%24skip=0&%24sort%5BFinishRankOverall%5D=1
 {
     "total": 739,
@@ -107,7 +108,7 @@ https://api.competitor.com/public/result/subevent/660190D0-BA16-E511-9402-005056
     ]
 }
 
-# race info
+## Race info
 https://api.competitor.com/public/events/660190D0-BA16-E511-9402-005056951BF1
 {
     "SubEventId": "660190D0-BA16-E511-9402-005056951BF1",
@@ -148,3 +149,21 @@ https://api.competitor.com/public/events/660190D0-BA16-E511-9402-005056951BF1
     "EventYear": 2015,
     "RegistrationStatus": null
 }
+
+# Mongo queries
+
+## Distinct brands
+ironman_races@mac.local> db.races.distinct("Brand")
+[
+	"5150 and International",
+	"IRONKIDS",
+	"IRONMAN",
+	"IRONMAN 70.3",
+	"IRONMAN Virtual Club",
+	"Iron Girl",
+	"Multisport Festivals",
+	"Non-series",
+	"Running",
+	"Short Course Triathlon"
+]
+

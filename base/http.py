@@ -10,8 +10,9 @@ logger = log.setup_logger(__file__)
 class CachedUrl:
     CACHE_FILE_EXTENSION = '.cache'
 
-    def __init__(self, url, cache_dir, timeout):
+    def __init__(self, url, headers, cache_dir, timeout=None):
         self.url = url
+        self.headers = headers
         url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()
         self.cache_dir = os.path.join(cache_dir, url_hash)
         self.timeout = timeout
@@ -20,7 +21,7 @@ class CachedUrl:
     def get(self):
         cache_file = self._get_cache_file()
         if self._file_is_empty(cache_file):
-            text = get(self.url)
+            text = get(self.url, self.headers)
             self._write_file(text, cache_file)
             return text
         return self._read_file(cache_file)
@@ -33,7 +34,8 @@ class CachedUrl:
         last_update_dt = self._get_max_update_dt(
             self.cache_dir, endswith=self.CACHE_FILE_EXTENSION)
         delta_sec = (current_dt - last_update_dt).total_seconds()
-        cache_dt = current_dt if delta_sec > self.timeout else last_update_dt
+        cache_expired = self.timeout is not None and delta_sec > self.timeout
+        cache_dt = current_dt if cache_expired else last_update_dt
 
         cache_filename = dt.datetime_to_string(cache_dt) + self.CACHE_FILE_EXTENSION
         return os.path.join(self.cache_dir, cache_filename)
@@ -61,9 +63,9 @@ class CachedUrl:
             f.write(text)
 
 
-def get(url):
-    logger.debug(f'loading url {url}')
-    r = requests.get(url)
+def get(url, headers):
+    logger.debug(f'loading url {url} headers: {headers}')
+    r = requests.get(url, headers=headers)
     if r.status_code != 200:
         logger.error(f'GET failed url: {url} code: {r.status_code}')
         return None

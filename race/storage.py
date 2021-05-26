@@ -9,7 +9,7 @@ PROCESSED_FIELD = '_processed'
 
 
 class RaceStorage:
-    def __init__(self, dbname='races-v0-1', create_indices=False):
+    def __init__(self, dbname, create_indices=False):
         self.mongo_client = MongoClient()
         self.db = self.mongo_client[dbname]
         self.races_meta = self.db['meta']

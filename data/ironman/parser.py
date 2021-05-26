@@ -26,7 +26,7 @@ VR_HALFS = ['VR1']
 LEG_NAMES = [SWIM_LEG, T1_LEG, BIKE_LEG, T2_LEG, RUN_LEG, FINISH_LEG]
 
 
-def get_event_name(race):
+def get_event_name_replaced(race):
     sub_event = unidecode.unidecode(race['SubEvent'])
     space_replace_items = ['/', ': Triathlon']
     for item in space_replace_items:
@@ -35,12 +35,28 @@ def get_event_name(race):
     return ' '.join(sub_event.strip().split())
 
 
-def get_event_id(race):
+def get_event_name(race):
+    return race['Event']
+
+
+def get_subevent_name(race):
+    return race['SubEvent']
+
+
+def get_subevent_id(race):
     return race['SubEventId']
 
 
-def is_invalid_race(race):
-    return 'invalid' in race and race['invalid']
+def get_subevent_type(race):
+    return race['SubEventType']
+
+
+def get_event_date(race):
+    return race['Date']
+
+
+def is_field_true(item, field):
+    return field in item and item[field]
 
 
 def get_brand(race):
@@ -117,9 +133,9 @@ def get_race_tri_type(race_name):
         if race_name.find(vr_halfs) != -1:
             return 'vr-half'
 
-    elif race_name.find('5150') != -1 or race_name.find('5i50') != -1:
+    if race_name.find('5150') != -1 or race_name.find('5i50') != -1:
         return 'olympic'
-    elif race_name.find('70.3') != -1
+    elif race_name.find('70.3') != -1:
         return 'half'
     else:
         return 'full'

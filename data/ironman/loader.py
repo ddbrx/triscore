@@ -6,46 +6,98 @@ import url
 
 logger = log.setup_logger(__file__)
 
-UPDATE_FREQUENCY_SEC = 86400
-# UPDATE_FREQUENCY_SEC = 60
+
+def data_transformer(item):
+    return item['data']
 
 
-def get_data_url(race):
-    return url.get_results_url(parser.get_event_id(race))
+def is_race(race):
+    subevent_type = parser.get_subevent_type(race)
+    return subevent_type == 'Race'
 
 
-def first_item_transformer(races_list):
-    return races_list[0]
-
-
-def ironman_filter(race):
+def is_ironman(race):
     name = parser.get_event_name(race)
-    return name.lower().find('ironman') == -1
+    return name.lower().find('ironman') != -1
 
 
-def t5150_filter(race):
+def is_t5150(race):
     name = parser.get_event_name(race)
     return name.lower().find('5150') == -1
 
 
-def ironman_and_t5150_filter(race):
-    return ironman_filter(race) and t5150_filter(race)
+def is_date_in_the_past(race):
+    date = parser.get_event_date(race)
+    # TODO: replace with current date
+    return date <= '2021-05-05'
+
+
+def ironman_race_date_filter(race):
+    valid_race = is_race(race) and is_ironman(race) and is_date_in_the_past(race)
+    return not valid_race
+
+
+def load_races(races_storage):
+    LIMIT = 100
+    FIRST_INDEX = 0
+    LAST_INDEX = 50000
+    for start_index in range(FIRST_INDEX, LAST_INDEX, LIMIT):
+        races_batch_url = url.get_races_url(limit=LIMIT, skip=start_index)
+        updated_ids = races_storage.update(
+            id_fields=['SubEventId', 'Date'],
+            list_url=races_batch_url,
+            list_headers=url.API_HEADERS,
+            list_update_frequency_sec=86400,
+            list_transformer=data_transformer,
+            list_filter=ironman_race_date_filter,
+            dry_run=False,
+            add_invalid=True,
+            data_load_timeout=1,
+            limit=-1)
+        if updated_ids is None:
+            logger.info(f'no races found url: {races_batch_url}: break')
+            break
+        else:
+            logger.info(f'{len(updated_ids)} items updated')
+
+
+def load_results(races_storage, db_name):
+    for race in races_storage.find(
+            where={DataStorage.INVALID_FIELD: False,
+                   DataStorage.PROCESSED_FIELD: False},
+            sort=[('Date', 1)]):
+        race_name = parser.get_subevent_name(race)
+        logger.info(f'process race {race_name}')
+
+        subevent_id = parser.get_subevent_id(race)
+        race_storage = DataStorage(
+            db_name=db_name, collection_name=subevent_id)
+        race_results_url = url.get_race_results_url(subevent_id=subevent_id)
+        updated_ids = race_storage.update(
+            id_fields=['ContactId'],
+            list_url=race_results_url,
+            list_headers=url.API_HEADERS,
+            list_transformer=data_transformer,
+            dry_run=False,
+            data_load_timeout=1,
+            limit=-1)
+
+        if updated_ids is None:
+            logger.info(
+                f'no results found for race \'{race_name}\': mark as invalid')
+            races_storage.mark_invalid(where={'SubEventId': subevent_id})
+        else:
+            logger.info(
+                f'race \'{race_name}\' results were processed: {len(updated_ids)} items added: mark as processed')
+            races_storage.mark_processed(where={'SubEventId': subevent_id})
 
 
 def main():
-    storage = DataStorage(collection_name='ironman-loaded')
-    updated_ids = storage.update(
-        id_fields=['SubEventId'],
-        list_url=url.RACES_URL,
-        list_update_frequency_sec=UPDATE_FREQUENCY_SEC,
-        list_transformer=first_item_transformer,
-        list_filter=ironman_filter,
-        data_url_field='data',
-        data_url_transformer=get_data_url,
-        dry_run=False,
-        add_invalid=True,
-        limit=-1)
-    logger.info(f'{len(updated_ids)} items updated')
+    races_storage = DataStorage(
+        db_name='ironman_races', collection_name='races')
+
+    # load_races(races_storage)
+    load_results(races_storage, db_name='ironman_results')
 
 
 if __name__ == '__main__':

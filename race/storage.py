@@ -9,9 +9,9 @@ PROCESSED_FIELD = '_processed'
 
 
 class RaceStorage:
-    def __init__(self, dbname, create_indices=False):
+    def __init__(self, db_name, create_indices=False):
         self.mongo_client = MongoClient()
-        self.db = self.mongo_client[dbname]
+        self.db = self.mongo_client[db_name]
         self.races_meta = self.db['meta']
         if create_indices:
             RaceStorage._create_meta_indices(self.races_meta)

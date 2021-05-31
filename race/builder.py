@@ -22,10 +22,11 @@ FINISH_LEG = 'f'
 
 def build_stats(total, success, male, female):
     success_percent = 100. * success / total
+
     return {
         't': total,
         's': success,
-        'p': f'{success_percent:5.1f}',
+        'p': f'{success_percent:.1f}',
         'm': male,
         'f': female
     }

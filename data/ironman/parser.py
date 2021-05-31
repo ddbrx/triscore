@@ -59,6 +59,10 @@ def get_event_brand(race):
     return race['Brand']
 
 
+def get_event_series(race):
+    return race['Series']
+
+
 def get_results(race):
     return race['data']
 
@@ -67,9 +71,16 @@ def get_age_group(result):
     return result['AgeGroup']
 
 
-def get_gender(result):
-    gender_or_none = result['Contact']['Gender']
-    return gender_or_none if gender_or_none else 'M'
+def get_gender(result, default='M'):
+    contact = result['Contact']
+    if not contact:
+        return default
+
+    gender = contact['Gender']
+    if not gender:
+        return default
+
+    return gender
 
 
 def is_male(result):
@@ -80,12 +91,15 @@ def is_female(result):
     return get_gender(result) == GENDER_FEMALE
 
 
-def get_athlete_name(result):
+def get_athlete_name(result, default=''):
+    if not result['Contact']:
+        return default
     return result['Contact']['FullName']
 
 
 def get_country_iso2(result):
-    return result['Country']['ISO2']
+    return result['CountryISO2']
+    # return result['Country']['ISO2']
 
 
 def get_contact_id(result):
@@ -121,16 +135,12 @@ def get_race_name_no_year(race_full_name):
     return race_full_name[brand_index:]
 
 
-def get_race_tri_type(race_name):
-    assert race_name.find(IRONMAN_BRAND) != -1, f'not an ironman: {race_name}'
+def get_race_tri_type(race):
+    race_brand = get_event_brand(race)
 
-    for vr_halfs in VR_HALFS:
-        if race_name.find(vr_halfs) != -1:
-            return 'vr-half'
-
-    if race_name.find('5150') != -1 or race_name.find('5i50') != -1:
+    if race_brand.find('5150') != -1 or race_brand.find('5i50') != -1:
         return 'olympic'
-    elif race_name.find('70.3') != -1:
+    elif race_brand.find('70.3') != -1:
         return 'half'
     else:
         return 'full'

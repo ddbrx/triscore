@@ -9,8 +9,7 @@ from base import log, utils, translit
 from base.location.resolver import LocationResolver
 
 from data.storage import DataStorage
-from obstri_matcher import ObstriMatcher
-import parser
+from data.ironman import parser
 from race import builder
 from race.storage import RaceStorage
 
@@ -228,14 +227,16 @@ def filter_result_duplicates(race_results):
         last_contact_id = contact_id
 
     duplicates_filtered = len(race_results) - len(filtered_race_results)
-    logger.info(f'filtered {duplicates_filtered} result duplicates')
+    logger.debug(f'filtered {duplicates_filtered} result duplicates')
     return filtered_race_results
 
 
 def fix_undefined_times(race_results):
     for race_result in race_results:
+        logger.debug(race_result)
+        athlete_name = parser.get_athlete_name(race_result)
+
         for leg in parser.LEG_NAMES:
-            athlete_name = parser.get_athlete_name(race_result)
             leg_finish_time = int(parser.get_leg_time(race_result, leg))
 
             set_finish_time_as_max = False
@@ -248,115 +249,70 @@ def fix_undefined_times(race_results):
                     leg_finish_time > builder.MAX_TIME:
                 leg_field = f'{leg}Time'
                 logger.debug(
-                    f'Fix {athlete_name} {leg_field} '
+                    f'Fix athlete: {athlete_name} leg: {leg_field} '
                     f'from {leg_finish_time} to {builder.MAX_TIME}: {race_result}')
                 race_result[leg_field] = builder.MAX_TIME
     return race_results
 
 
-def publish_ironman_data(start_index, limit, dry_run):
-    ironman_data = DataStorage(collection_name='ironman', indices=['SubEvent'])
-    race_storage = RaceStorage(create_indices=True)
+def publish_ironman_races(start_index, limit, dry_run):
+    ironman_races = DataStorage(
+        db_name='ironman_races', collection_name='races', indices=['SubEventId'])
 
-    obstri_matcher = ObstriMatcher()
+    triscore_races = RaceStorage(db_name='triscore', create_indices=True)
 
-    ironman_races = ironman_data.find(
-        sort=[('SubEvent', 1)], skip=start_index, limit=limit)
+    ironman_races = ironman_races.find(where={DataStorage.INVALID_FIELD: False, DataStorage.PROCESSED_FIELD: True},
+                                       sort=[('Date', 1)],
+                                       skip=start_index,
+                                       limit=limit)
     count = ironman_races.count()
 
-    obstri_not_matched_races = []
     max_count = -1
     for i, race in enumerate(ironman_races):
         if i == max_count:
             logger.info(f'stopping by max count: {max_count}')
             break
 
-        race_full_name = parser.get_event_name(race)
+        race_name = parser.get_event_name(race)
+        race_date = parser.get_event_date(race)
+        race_series = parser.get_event_series(race)
+        subevent_id = parser.get_subevent_id(race)
 
         logger.info(
-            f'{start_index + i + 1}/{count}: process race {race_full_name}')
+            f'{start_index + i + 1}/{count} process race: {race_name} date: {race_date} series: {race_series} id: {subevent_id}')
 
-        if parser.is_invalid_race(race):
-            logger.info(f'skip invalid race: {race_full_name}')
-            continue
-
-        if not parser.is_ironman_series(race_full_name):
-            logger.info(f'skip not ironman series race: {race_full_name}')
-            continue
-
-        obstri_race = obstri_matcher.find_race(race_full_name)
-        if not obstri_race:
-            logger.warning(
-                f'No obstri race found: SKIP RACE {race_full_name}')
-            obstri_not_matched_races.append(race_full_name)
-            continue
-
-        race_date = obstri_race['d']
-        race_name_no_year = parser.get_race_name_no_year(race_full_name)
-
-        race_results = parser.get_results(race)
+        race_results_storage = DataStorage(db_name='ironman_results', collection_name=subevent_id)
+        race_results = list(race_results_storage.find())
         race_results = filter_result_duplicates(race_results)
         race_results = fix_undefined_times(race_results)
 
-        if race_storage.has_race(name=race_name_no_year, date=race_date):
-            race_written_length = race_storage.get_race_length(
-                name=race_name_no_year, date=race_date)
+        if triscore_races.has_race(name=race_series, date=race_date):
+            race_written_length = triscore_races.get_race_length(name=race_series, date=race_date)
             race_new_length = len(race_results)
 
             if race_new_length != race_written_length:
-                logger.info(
-                    f'drop existing collection for race {race_full_name}'
+                logger.warning(
+                    f'drop existing collection for race {race_name}'
                     f' race_new_length: {race_new_length}'
                     f' race_written_length: {race_written_length}')
-                race_storage.remove_race(
-                    name=race_name_no_year, date=race_date)
+                triscore_races.remove_race(name=race_series, date=race_date)
             else:
                 logger.warning(
-                    f'skip adding race {race_full_name}: collection exist')
+                    f'skip adding race {race_name}: collection exist')
                 continue
 
-        race_location_full_name = ''
-        race_distance_info = {}
-        obstri_info_race = obstri_matcher.find_race_info(obstri_race)
-        if obstri_info_race:
-            race_location_full_name = obstri_info_race['c']
-            obstri_race_info_str = obstri_info_race['info'] if 'info' in obstri_info_race else None
-            if obstri_race_info_str:
-                obstri_race_info = json.loads(obstri_race_info_str)
-                race_distance_info = builder.build_distance_info(
-                    swim_distance=obstri_race_info['swim']['distance'],
-                    swim_type=obstri_race_info['swim']['type'],
-                    swim_elevation=obstri_race_info['swim']['elevationGain'],
-                    bike_distance=obstri_race_info['bike']['distance'],
-                    bike_score=obstri_race_info['bike']['score'],
-                    bike_elevation=obstri_race_info['bike']['elevationGain'],
-                    run_distance=obstri_race_info['run']['distance'],
-                    run_score=obstri_race_info['run']['score'],
-                    run_elevation=obstri_race_info['run']['elevationGain']
-                )
-        else:
-            logger.warning(
-                f'No obstri info race found race: {race_full_name}')
-
-        race_location_desc = race_location_full_name.split(',')[-1].strip()
-        race_country = country_resolver.try_to_deduce_country(
-            race_location_desc)
-        race_location_info = builder.build_location_info(
-            description=race_location_full_name, country=race_country)
-
-        # Stats
-        stats = get_stats(race_results)
-
         # Race info
-        race_tri_type = parser.get_race_tri_type(race_full_name)
+        race_stats = get_stats(race_results)
         race_info = builder.build_race_info(
-            name=race_name_no_year,
+            name=race_series,
             date=race_date,
-            location_info=race_location_info,
+            location_info=None,
             brand=parser.IRONMAN_BRAND,
-            tri_type=race_tri_type,
-            stats=stats,
-            distance_info=race_distance_info)
+            tri_type=parser.get_race_tri_type(race),
+            stats=race_stats,
+            distance_info=None)
+        logger.debug(f'info: {race_info}')
+
 
         # Rank by leg
         count_by_age_group = {}
@@ -449,6 +405,7 @@ def publish_ironman_data(start_index, limit, dry_run):
                 overall_size=overall_size,
                 status=status,
                 legs=legs)
+            logger.debug(f'result: {athlete_result}')
             athlete_results.append(athlete_result)
 
             last_finish_time = finish_time
@@ -458,12 +415,8 @@ def publish_ironman_data(start_index, limit, dry_run):
             logger.info(
                 f'DRY_RUN: skip adding race: {race_info} results: {len(athlete_results)}')
         else:
-            assert race_storage.add_race(
+            assert triscore_races.add_race(
                 race_info, athlete_results), f'failed to add race: {race_info}'
-
-    logger.info(f'obstri not matched {len(obstri_not_matched_races)} races')
-    for i, race in enumerate(obstri_not_matched_races):
-        logger.info(f'{i + 1}: {race}')
 
 
 def main():
@@ -471,7 +424,7 @@ def main():
     limit = 0
     dry_run = False
 
-    publish_ironman_data(start_index, limit, dry_run)
+    publish_ironman_races(start_index, limit, dry_run)
 
 
 if __name__ == '__main__':

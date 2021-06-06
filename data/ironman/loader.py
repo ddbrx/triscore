@@ -88,11 +88,10 @@ def load_results(races_storage, db_name):
 
 
 def main():
-    races_storage = DataStorage(
-        db_name='ironman_races', collection_name='races')
+    races_storage = DataStorage(db_name='ironman', collection_name='races')
 
     load_races(races_storage)
-    load_results(races_storage, db_name='ironman_results')
+    load_results(races_storage, db_name='ironman')
 
 
 if __name__ == '__main__':

@@ -256,8 +256,7 @@ def fix_undefined_times(race_results):
 
 
 def publish_ironman_races(start_index, limit, dry_run):
-    ironman_races = DataStorage(
-        db_name='ironman_races', collection_name='races', indices=['SubEventId'])
+    ironman_races = DataStorage(db_name='ironman', collection_name='races', indices=['SubEventId'])
 
     triscore_races = RaceStorage(db_name='triscore', create_indices=True)
 
@@ -281,7 +280,7 @@ def publish_ironman_races(start_index, limit, dry_run):
         logger.info(
             f'{start_index + i + 1}/{count} process race: {race_name} date: {race_date} series: {race_series} id: {subevent_id}')
 
-        race_results_storage = DataStorage(db_name='ironman_results', collection_name=subevent_id)
+        race_results_storage = DataStorage(db_name='ironman', collection_name=subevent_id)
         race_results = list(race_results_storage.find())
         race_results = filter_result_duplicates(race_results)
         race_results = fix_undefined_times(race_results)

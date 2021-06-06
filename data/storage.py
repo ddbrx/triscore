@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from pymongo import MongoClient, ASCENDING, DESCENDING
 

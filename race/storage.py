@@ -171,28 +171,29 @@ class RaceStorage:
 
         meta_collection.create_index([
             ('name', 'text'),
-            ('location.d', 'text'),
-            ('location.cy', 'text'),
-            ('location.c', 'text')])
+            # ('location.d', 'text'),
+            # ('location.cy', 'text'),
+            # ('location.c', 'text')
+        ])
 
         meta_collection.create_index('date')
         meta_collection.create_index('brand')
         meta_collection.create_index('type')
 
-        meta_collection.create_index('location.d')
-        meta_collection.create_index('location.ct')
-        meta_collection.create_index('location.cy')
-        meta_collection.create_index('location.c')
+        # meta_collection.create_index('location.d')
+        # meta_collection.create_index('location.ct')
+        # meta_collection.create_index('location.cy')
+        # meta_collection.create_index('location.c')
 
-        meta_collection.create_index('distance.s.d')
-        meta_collection.create_index('distance.s.t')
-        meta_collection.create_index('distance.s.e')
-        meta_collection.create_index('distance.b.d')
-        meta_collection.create_index('distance.b.s')
-        meta_collection.create_index('distance.b.e')
-        meta_collection.create_index('distance.r.d')
-        meta_collection.create_index('distance.r.s')
-        meta_collection.create_index('distance.r.e')
+        # meta_collection.create_index('distance.s.d')
+        # meta_collection.create_index('distance.s.t')
+        # meta_collection.create_index('distance.s.e')
+        # meta_collection.create_index('distance.b.d')
+        # meta_collection.create_index('distance.b.s')
+        # meta_collection.create_index('distance.b.e')
+        # meta_collection.create_index('distance.r.d')
+        # meta_collection.create_index('distance.r.s')
+        # meta_collection.create_index('distance.r.e')
 
         meta_collection.create_index('stats.t')
         meta_collection.create_index('stats.s')

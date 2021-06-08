@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from base import log, utils
+from base import log, dt
 from data.storage import DataStorage
 import parser
 import url
@@ -23,8 +23,8 @@ def is_race(race):
 
 def is_date_in_the_past(race):
     date = parser.get_event_date(race)
-    # TODO: replace with current date
-    return date <= '2021-05-05'
+    current_date = dt.date_to_string(dt.now(), dt.DATE_FORMAT)
+    return date < current_date
 
 
 def ironman_race_date_filter(race):

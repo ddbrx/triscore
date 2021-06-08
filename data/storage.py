@@ -84,7 +84,7 @@ class DataStorage:
         if len(list_json) == 0:
             logger.warn(f'no data found url: {list_url}')
             return None
-        
+
         if len(id_fields) == 1:
             self.data_collection.create_index(id_fields[0], unique=True)
         else:

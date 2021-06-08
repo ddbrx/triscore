@@ -149,6 +149,7 @@ class EloScorer:
             is_finished = finish_status == race_builder.FINISH_STATUS_OK
 
             virtual_seed_rank = 1.
+            # ARE YOU SURE HERE NOT TIME AGE GROUP RANK?
             virtual_time_rank = race_parser.get_age_group_rank(result)
 
             athlete_score = score_by_id[athlete_id]

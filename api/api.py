@@ -17,12 +17,10 @@ api_v1 = Blueprint('api_v1', __name__, template_folder='templates_v1')
 MAX_ITEMS_LIMIT = 100
 RACES_BATCH_SIZE = 101
 
-RACES_DB = 'races-v0-1'
+RACES_DB = 'races'
 
 SCORES_DB = 'triscore'
-# SCORES_COLLECTION = 'scores'
-# SCORES_COLLECTION = 'scores-f8-A-6-B-13-C-1-D-1'
-SCORES_COLLECTION = 'scores-f18-A-6-B-12-C-3-D-0'
+SCORES_COLLECTION = 'scores'
 
 
 def add_rel_index(iterable, start_index):
@@ -40,7 +38,7 @@ def status():
 
 @api_v1.route('/races')
 def races():
-    race_storage = RaceStorage()
+    race_storage = RaceStorage(db_name=RACES_DB)
 
     logger.info(request.args)
 

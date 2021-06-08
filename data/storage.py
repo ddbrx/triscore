@@ -25,10 +25,8 @@ class DataStorage:
     PROCESSED_FIELD = 'Processed'
     INVALID_FIELD = 'Invalid'
 
-    def __init__(self, mongo_client, collection_name, db_name='data', indices=[]):
-        self.db_name = db_name
-        self.collection_name = collection_name
-
+    def __init__(self, mongo_client, db_name, collection_name, indices=[]):
+        self.cache_dir = Path(SCRIPT_DIR, self.CACHE_NAME, db_name, collection_name)
         self.data_collection = mongo_client[db_name][collection_name]
         for index in indices:
             self.data_collection.create_index(index)
@@ -68,11 +66,10 @@ class DataStorage:
                skip_empty_data=True,
                data_load_timeout=0):
 
-        cache_dir = Path(SCRIPT_DIR, self.CACHE_NAME, self.db_name, self.collection_name)
         cached_list = http.CachedUrl(
             url=list_url,
             headers=list_headers,
-            cache_dir=cache_dir,
+            cache_dir=self.cache_dir,
             timeout=list_update_frequency_sec)
 
         list_data = cached_list.get()

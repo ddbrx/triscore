@@ -20,12 +20,12 @@ def datetime_to_string(dt, format=DATETIME_FORMAT):
     return datetime.strftime(dt, format)
 
 
-def date_from_string(d, format=DATETIME_FORMAT):
-    return datetime_from_string(d, format=DATE_FORMAT)
+def date_from_string(d, format=DATE_FORMAT):
+    return datetime_from_string(d, format)
 
 
-def date_to_string(d, format=DATETIME_FORMAT):
-    return datetime_to_string(d, format=DATE_FORMAT)
+def date_to_string(d, format=DATE_FORMAT):
+    return datetime_to_string(d, format)
 
 
 def delta(dt, years=0, days=0):

@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
-
 from base import log, dt
 from data.ironman import parser, url
 from data.storage import DataStorage
-
 from pymongo import MongoClient
 
 
-logger = log.setup_logger(__file__)
+logger = log.setup_logger(__file__, debug=False)
 
 
 def data_transformer(item):
@@ -27,7 +25,7 @@ def is_race(race):
 
 def is_date_in_the_past(race):
     date = parser.get_event_date(race)
-    current_date = dt.date_to_string(dt.now(), dt.DATE_FORMAT)
+    current_date = dt.date_to_string(dt.now())
     return date < current_date
 
 
@@ -42,7 +40,6 @@ def load_races(mongo_client):
     LAST_INDEX = 50000
 
     races_storage = DataStorage(mongo_client, db_name='ironman', collection_name='races')
-
     for start_index in range(FIRST_INDEX, LAST_INDEX, LIMIT):
         races_batch_url = url.get_races_url(limit=LIMIT, skip=start_index)
         updated_ids = races_storage.update(
@@ -70,9 +67,9 @@ def load_results(mongo_client):
                    DataStorage.PROCESSED_FIELD: False},
             sort=[('Date', 1)]):
         race_name = parser.get_subevent_name(race)
-        logger.info(f'process race {race_name}')
-
         subevent_id = parser.get_subevent_id(race)
+        logger.info(f'process race {race_name} subevent_id: {subevent_id}')
+
         results_storage = DataStorage(
             mongo_client, db_name='ironman', collection_name=subevent_id)
         race_results_url = url.get_race_results_url(subevent_id=subevent_id)

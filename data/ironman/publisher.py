@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-from decimal import *
-import json
-from operator import itemgetter
-import re
-import unidecode
-
-from base import log, utils, translit
+from argparse import ArgumentParser
+from base import log
 from base.location.resolver import LocationResolver
-
 from data.storage import DataStorage
 from data.ironman import parser
+from decimal import *
+from pymongo import MongoClient
 from race import builder
 from race.storage import RaceStorage
+
 
 logger = log.setup_logger(__file__, debug=False)
 
@@ -255,19 +252,19 @@ def fix_undefined_times(race_results):
     return race_results
 
 
-def publish_ironman_races(start_index, limit, dry_run):
-    ironman_races = DataStorage(db_name='ironman', collection_name='races', indices=['SubEventId'])
+def publish_ironman_races(mongo_client, start_index, limit, dry_run):
+    ironman_storage = DataStorage(mongo_client=mongo_client, db_name='ironman', collection_name='races')
 
-    triscore_races = RaceStorage(db_name='triscore', create_indices=True)
+    triscore_storage = RaceStorage(mongo_client=mongo_client, db_name='triscore', create_indices=True)
 
-    ironman_races = ironman_races.find(where={DataStorage.INVALID_FIELD: False, DataStorage.PROCESSED_FIELD: True},
+    ironman_storage = ironman_storage.find(where={DataStorage.INVALID_FIELD: False, DataStorage.PROCESSED_FIELD: True},
                                        sort=[('Date', 1)],
                                        skip=start_index,
                                        limit=limit)
-    count = ironman_races.count()
+    count = ironman_storage.count()
 
     max_count = -1
-    for i, race in enumerate(ironman_races):
+    for i, race in enumerate(ironman_storage):
         if i == max_count:
             logger.info(f'stopping by max count: {max_count}')
             break
@@ -285,8 +282,8 @@ def publish_ironman_races(start_index, limit, dry_run):
         race_results = filter_result_duplicates(race_results)
         race_results = fix_undefined_times(race_results)
 
-        if triscore_races.has_race(name=race_series, date=race_date):
-            race_written_length = triscore_races.get_race_length(name=race_series, date=race_date)
+        if triscore_storage.has_race(name=race_series, date=race_date):
+            race_written_length = triscore_storage.get_race_length(name=race_series, date=race_date)
             race_new_length = len(race_results)
 
             if race_new_length != race_written_length:
@@ -294,7 +291,7 @@ def publish_ironman_races(start_index, limit, dry_run):
                     f'drop existing collection for race {race_name}'
                     f' race_new_length: {race_new_length}'
                     f' race_written_length: {race_written_length}')
-                triscore_races.remove_race(name=race_series, date=race_date)
+                triscore_storage.remove_race(name=race_series, date=race_date)
             else:
                 logger.warning(
                     f'skip adding race {race_name}: collection exist')
@@ -414,16 +411,23 @@ def publish_ironman_races(start_index, limit, dry_run):
             logger.info(
                 f'DRY_RUN: skip adding race: {race_info} results: {len(athlete_results)}')
         else:
-            assert triscore_races.add_race(
+            assert triscore_storage.add_race(
                 race_info, athlete_results), f'failed to add race: {race_info}'
 
 
 def main():
-    start_index = 0
-    limit = 0
-    dry_run = False
+    parser = ArgumentParser()
+    parser.add_argument('-d', '--database', default='ironman')
+    parser.add_argument('-u', '--username', default='triscore-writer')
+    parser.add_argument('-p', '--password', required=True)
+    parser.add_argument('-s', '--start-index', default=0)
+    parser.add_argument('-l', '--limit', default=0)
+    parser.add_argument('--dry-run', action='store_true')
+    args = parser.parse_args()
 
-    publish_ironman_races(start_index, limit, dry_run)
+    mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
+
+    publish_ironman_races(mongo_client, args.start_index, args.limit, args.dry_run)
 
 
 if __name__ == '__main__':

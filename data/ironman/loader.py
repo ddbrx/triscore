@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from argparse import ArgumentParser
+
 from base import log, dt
 from data.ironman import parser, url
 from data.storage import DataStorage
@@ -94,7 +96,13 @@ def load_results(mongo_client):
 
 
 def main():
-    mongo_client = MongoClient()
+    parser = ArgumentParser()
+    parser.add_argument('-d', '--database', default='ironman')
+    parser.add_argument('-u', '--username', default='data-loader')
+    parser.add_argument('-p', '--password', required=True)
+    args = parser.parse_args()
+
+    mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
 
     load_races(mongo_client)
     load_results(mongo_client)

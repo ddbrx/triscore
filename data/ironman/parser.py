@@ -129,12 +129,6 @@ def is_ironman_series(race_full_name):
     return race_full_name.find(IRONMAN_BRAND) != -1
 
 
-def get_race_name_no_year(race_full_name):
-    brand_index = race_full_name.find(IRONMAN_BRAND)
-    assert brand_index != -1, f'ironman brand not found: {race_full_name}'
-    return race_full_name[brand_index:]
-
-
 def get_race_tri_type(race):
     race_brand = get_event_brand(race)
 

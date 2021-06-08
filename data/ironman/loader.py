@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 from base import log, dt
+from data.ironman import parser, url
 from data.storage import DataStorage
-import parser
-import url
+
+from pymongo import MongoClient
+
 
 logger = log.setup_logger(__file__)
 
@@ -32,10 +34,13 @@ def ironman_race_date_filter(race):
     return not valid_race
 
 
-def load_races(races_storage):
+def load_races(mongo_client):
     LIMIT = 100
     FIRST_INDEX = 0
     LAST_INDEX = 50000
+
+    races_storage = DataStorage(mongo_client, db_name='ironman', collection_name='races')
+
     for start_index in range(FIRST_INDEX, LAST_INDEX, LIMIT):
         races_batch_url = url.get_races_url(limit=LIMIT, skip=start_index)
         updated_ids = races_storage.update(
@@ -56,7 +61,8 @@ def load_races(races_storage):
             logger.info(f'url: {races_batch_url} updated: {len(updated_ids)}')
 
 
-def load_results(races_storage, db_name):
+def load_results(mongo_client):
+    races_storage = DataStorage(mongo_client, db_name='ironman', collection_name='races')
     for race in races_storage.find(
             where={DataStorage.INVALID_FIELD: False,
                    DataStorage.PROCESSED_FIELD: False},
@@ -65,10 +71,10 @@ def load_results(races_storage, db_name):
         logger.info(f'process race {race_name}')
 
         subevent_id = parser.get_subevent_id(race)
-        race_storage = DataStorage(
-            db_name=db_name, collection_name=subevent_id)
+        results_storage = DataStorage(
+            mongo_client, db_name='ironman', collection_name=subevent_id)
         race_results_url = url.get_race_results_url(subevent_id=subevent_id)
-        updated_ids = race_storage.update(
+        updated_ids = results_storage.update(
             id_fields=['ContactId'],
             list_url=race_results_url,
             list_headers=url.API_HEADERS,
@@ -88,10 +94,10 @@ def load_results(races_storage, db_name):
 
 
 def main():
-    races_storage = DataStorage(db_name='ironman', collection_name='races')
+    mongo_client = MongoClient()
 
-    load_races(races_storage)
-    load_results(races_storage, db_name='ironman')
+    load_races(mongo_client)
+    load_results(mongo_client)
 
 
 if __name__ == '__main__':

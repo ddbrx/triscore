@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo import DESCENDING
 
 from base import log, http
 from time import sleep
@@ -25,12 +25,11 @@ class DataStorage:
     PROCESSED_FIELD = 'Processed'
     INVALID_FIELD = 'Invalid'
 
-    def __init__(self, collection_name, db_name='data', indices=[]):
+    def __init__(self, mongo_client, collection_name, db_name='data', indices=[]):
         self.db_name = db_name
         self.collection_name = collection_name
 
-        self.mongo_client = MongoClient()
-        self.data_collection = self.mongo_client[db_name][collection_name]
+        self.data_collection = mongo_client[db_name][collection_name]
         for index in indices:
             self.data_collection.create_index(index)
 

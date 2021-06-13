@@ -30,23 +30,32 @@ class CachedUrl:
         return not os.path.exists(file) or os.stat(file).st_size == 0
 
     def _get_cache_file(self):
-        current_dt = dt.now()
-        last_update_dt = self._get_max_update_dt(
-            self.cache_dir, endswith=self.CACHE_FILE_EXTENSION)
-        delta_sec = (current_dt - last_update_dt).total_seconds()
-        cache_expired = self.timeout is not None and delta_sec > self.timeout
-        cache_dt = current_dt if cache_expired else last_update_dt
-
+        cache_dt = self._get_cache_dt(dt.now())
         cache_filename = dt.datetime_to_string(cache_dt) + self.CACHE_FILE_EXTENSION
         return os.path.join(self.cache_dir, cache_filename)
+
+    def _get_cache_dt(self, current_dt):
+        last_update_dt = self._get_max_update_dt(
+            self.cache_dir, endswith=self.CACHE_FILE_EXTENSION)
+        if last_update_dt is None:
+            return current_dt
+
+        if self.timeout is None:
+            return last_update_dt
+
+        delta_sec = (current_dt - last_update_dt).total_seconds()
+        if delta_sec > self.timeout:
+            return current_dt
+
+        return last_update_dt
 
     def _get_max_update_dt(self, dir, endswith):
         max_dt = dt.min
         for race_file in os.listdir(dir):
             if race_file.endswith(endswith):
-                max_dt = max(max_dt, dt.datetime_from_string(
-                    os.path.splitext(race_file)[0]))
-        return max_dt
+                filename_dt = os.path.splitext(race_file)[0]
+                max_dt = max(max_dt, dt.datetime_from_string(filename_dt))
+        return max_dt if max_dt != dt.min else None
 
     def _create_dirs_if_needed(self, dir):
         os.makedirs(dir, exist_ok=True)

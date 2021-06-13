@@ -31,8 +31,8 @@ class DataStorage:
         for index in indices:
             self.data_collection.create_index(index)
 
-    def find(self, where={}, projection=None, sort=None, skip=0, limit=0):
-        return self.data_collection.find(where, projection=projection, sort=sort).skip(skip).limit(limit)
+    def find(self, where={}, projection=None, sort=None, skip=0, limit=0, batch_size=10):
+        return self.data_collection.find(where, projection=projection, sort=sort, batch_size=batch_size).skip(skip).limit(limit)
 
     def find_one(self, where={}, projection=None, sort=None):
         return self.data_collection.find_one(where, projection=projection, sort=sort)

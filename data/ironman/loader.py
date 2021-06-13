@@ -46,7 +46,7 @@ def load_races(mongo_client):
             id_fields=['SubEventId', 'Date'],
             list_url=races_batch_url,
             list_headers=url.API_HEADERS,
-            list_update_frequency_sec=86400,
+            list_update_frequency_sec=86400 * 7,
             list_transformer=data_transformer,
             list_filter=ironman_race_date_filter,
             dry_run=False,

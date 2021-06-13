@@ -67,6 +67,42 @@ def get_results(race):
     return race['data']
 
 
+def get_country_iso(race):
+    return race["CountryISONumeric"]
+
+
+def get_continent(race):
+    return race["Continent"]
+
+
+def get_country(race):
+    return race["Country"]
+
+
+def get_state_or_province(race):
+    return race["StateOrProvince"]
+
+
+def get_city(race):
+    return race["City"]
+
+
+def get_distance_in_km(race):
+    return race['DistanceInKM']
+
+
+def get_swim_type(race):
+    return race['Swim']
+
+
+def get_bike_type(race):
+    return race['Bike']
+
+
+def get_run_type(race):
+    return race['Run']
+
+
 def get_age_group(result):
     return result['AgeGroup']
 

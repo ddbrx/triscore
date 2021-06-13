@@ -31,6 +31,23 @@ LEG_IRONMAN_TO_TRISCORE = {
 }
 
 
+def get_location_info(race):
+    country_iso = parser.get_country_iso(race)
+    continent = parser.get_continent(race)
+    country = parser.get_country(race)
+    state = parser.get_state_or_province(race)
+    city = parser.get_city(race)
+    return builder.build_location_info(country_iso, continent, country, state, city)
+
+
+def get_distance_info(race):
+    total_distance = parser.get_distance_in_km(race)
+    swim_type = parser.get_swim_type(race)
+    bike_type = parser.get_bike_type(race)
+    run_type = parser.get_run_type(race)
+    return builder.build_distance_info(total_distance, swim_type, bike_type, run_type)
+
+
 def get_sorted_results(race_results, sort_by):
     return sorted(race_results, key=lambda result: result[sort_by])
 
@@ -298,15 +315,18 @@ def publish_ironman_races(mongo_client, start_index, limit, dry_run):
                 continue
 
         # Race info
+        location_info = get_location_info(race)
+        distance_info = get_distance_info(race)
         race_stats = get_stats(race_results)
+
         race_info = builder.build_race_info(
             name=race_series,
             date=race_date,
-            location_info=None,
             brand=parser.IRONMAN_BRAND,
             tri_type=parser.get_race_tri_type(race),
-            stats=race_stats,
-            distance_info=None)
+            location_info=location_info,
+            distance_info=distance_info,
+            stats=race_stats)
         logger.debug(f'info: {race_info}')
 
 

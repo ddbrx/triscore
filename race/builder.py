@@ -22,7 +22,6 @@ FINISH_LEG = 'f'
 
 def build_stats(total, success, male, female):
     success_percent = 100. * success / total
-
     return {
         't': total,
         's': success,
@@ -32,42 +31,26 @@ def build_stats(total, success, male, female):
     }
 
 
-def build_location_info(description, country):
-    def get_or_empty(field):
-        return country[field] if country else ''
-
-    location_info = {
-        'd': description
-    }
-
-    location_info['ct'] = get_or_empty('continent_name')
-    location_info['cy'] = get_or_empty('name')
-    location_info['c'] = get_or_empty('fifa')
-
-    return location_info
-
-
-def build_distance_info(swim_distance, swim_type, swim_elevation, bike_distance, bike_score, bike_elevation, run_distance, run_score, run_elevation):
+def build_location_info(country_iso, continent, country, state, city):
     return {
-        SWIM_LEG: {
-            'd': swim_distance,
-            't': swim_type,
-            'e': swim_elevation
-        },
-        BIKE_LEG: {
-            'd': bike_distance,
-            's': bike_score,
-            'e': bike_elevation
-        },
-        RUN_LEG: {
-            'd': run_distance,
-            's': run_score,
-            'e': run_elevation
-        }
+        'country_iso': country_iso,
+        'continent': continent,
+        'country': country,
+        'state': state,
+        'city': city,
     }
 
 
-def build_race_info(name, date, location_info, brand, tri_type,  distance_info, stats):
+def build_distance_info(total_distance, swim_type, bike_type, run_type):
+    return {
+        'td': total_distance,
+        'st': swim_type,
+        'bt': bike_type,
+        'rt': run_type,
+    }
+
+
+def build_race_info(name, date, brand, tri_type, location_info, distance_info, stats):
     return {
         'name': name,
         'date': date,

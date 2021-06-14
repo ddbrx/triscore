@@ -46,7 +46,7 @@ class TriscoreStorage:
             return race_meta
         return {}
 
-    def get_race_results(self, race_name, race_date, athlete_filter='', country_filter='', age_group_filter='', sort_field='or', sort_order=1, skip=0, limit=0):
+    def get_race_results(self, race_name, race_date, athlete_filter='', country_filter='', age_group_filter='', sort_field='or', sort_order=1, skip=0, limit=0, batch_size=10):
         race_id = self._get_race_id(race_name, race_date)
         if not race_id:
             log.error(
@@ -61,7 +61,8 @@ class TriscoreStorage:
         return race_collection.find(
             query,
             sort=sort,
-            projection=projection
+            projection=projection,
+            batch_size=batch_size
         ).skip(skip).limit(limit)
 
     def update_athlete_id(self, race_date, race_name, source_athlete_id, target_athlete_id):
@@ -87,11 +88,14 @@ class TriscoreStorage:
             race_collection = self.db[str(inserted_id)]
             TriscoreStorage._create_data_indices(race_collection)
             inserted_ids = race_collection.insert_many(results).inserted_ids
+            if len(inserted_ids) == len(results):
+                self.set_race_processed(race_name, race_date)
+                return True
+            else:
+                return False
         except Exception as exception:
             logger.error(f'failed to add race: {info} exception: {exception}')
             return False
-        else:
-            return len(inserted_ids) == len(results)
 
     def remove_race(self, name, date):
         race_id = self._get_race_id(name, date)

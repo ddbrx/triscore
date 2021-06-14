@@ -271,7 +271,7 @@ def fix_undefined_times(race_results):
     return race_results
 
 
-def transform_ironman_to_triscore(mongo_client, start_index, limit, dry_run):
+def transform_ironman_to_triscore(mongo_client, limit, dry_run):
     ironman_races_storage = DataStorage(mongo_client=mongo_client, db_name='ironman', collection_name='races')
 
     triscore_storage = TriscoreStorage(mongo_client=mongo_client, db_name='triscore', create_indices=True)
@@ -279,7 +279,6 @@ def transform_ironman_to_triscore(mongo_client, start_index, limit, dry_run):
     ironman_races = ironman_races_storage.find(
         where={DataStorage.INVALID_FIELD: False, DataStorage.PROCESSED_FIELD: True},
         sort=[('Date', 1)],
-        skip=start_index,
         limit=limit)
     count = ironman_races.count()
 
@@ -289,13 +288,17 @@ def transform_ironman_to_triscore(mongo_client, start_index, limit, dry_run):
             logger.info(f'stopping by max count: {max_count}')
             break
 
-        race_name = race_parser.get_event_name(race)
-        race_date = race_parser.get_date(race)
         race_series = race_parser.get_series(race)
+        race_date = race_parser.get_date(race)
+
+        if triscore_storage.race_processed(race_series, race_date):
+            logger.info(f'skip processed race {race_series} {race_date}')
+            continue
+
         subevent_id = race_parser.get_subevent_id(race)
 
         logger.info(
-            f'{start_index + i + 1}/{count} process race: {race_name} date: {race_date} series: {race_series} id: {subevent_id}')
+            f'{i + 1}/{count} process race series: {race_series} date: {race_date} id: {subevent_id}')
 
         race_results_storage = DataStorage(mongo_client=mongo_client, db_name='ironman', collection_name=subevent_id)
         race_results = list(race_results_storage.find())
@@ -306,16 +309,13 @@ def transform_ironman_to_triscore(mongo_client, start_index, limit, dry_run):
             race_written_length = triscore_storage.get_race_length(name=race_series, date=race_date)
             race_new_length = len(race_results)
 
-            if race_new_length != race_written_length:
-                logger.warning(
-                    f'drop existing collection for race {race_name}'
-                    f' race_new_length: {race_new_length}'
-                    f' race_written_length: {race_written_length}')
-                triscore_storage.remove_race(name=race_series, date=race_date)
-            else:
-                logger.warning(
-                    f'skip adding race {race_name}: collection exist')
-                continue
+            logger.warning(
+                f'drop existing collection for'
+                f' race series: {race_series}'
+                f' date: {race_date}'
+                f' race_written_length: {race_written_length}'
+                f' race_new_length: {race_new_length}')
+            triscore_storage.remove_race(name=race_series, date=race_date)
 
         # Race info
         location_info = get_location_info(race)
@@ -434,14 +434,13 @@ def main():
     parser.add_argument('-d', '--database', default='triscore')
     parser.add_argument('-u', '--username', default='triscore-writer')
     parser.add_argument('-p', '--password', required=True)
-    parser.add_argument('-s', '--start-index', type=int, default=0)
     parser.add_argument('-l', '--limit', type=int, default=0)
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
 
     mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
 
-    transform_ironman_to_triscore(mongo_client, args.start_index, args.limit, args.dry_run)
+    transform_ironman_to_triscore(mongo_client, args.limit, args.dry_run)
 
 
 if __name__ == '__main__':

@@ -3,11 +3,11 @@ from argparse import ArgumentParser
 from base import log
 from base.location.resolver import LocationResolver
 from data.storage import DataStorage
-from data.ironman import parser
+from data.ironman.parser import constants, race_parser, result_parser
 from decimal import *
 from pymongo import MongoClient
 from race import builder
-from race.storage import RaceStorage
+from race.storage import TriscoreStorage
 
 
 logger = log.setup_logger(__file__, debug=False)
@@ -15,36 +15,39 @@ logger = log.setup_logger(__file__, debug=False)
 country_resolver = LocationResolver()
 
 IRONMAN_EVENT_STATUS_TO_TRISCORE = {
-    parser.EVENT_STATUS_DQ: builder.FINISH_STATUS_DQ,
-    parser.EVENT_STATUS_DNS: builder.FINISH_STATUS_DNS,
-    parser.EVENT_STATUS_DNF: builder.FINISH_STATUS_DNF,
-    parser.EVENT_STATUS_FINISH: builder.FINISH_STATUS_OK
+    constants.EVENT_STATUS_DQ: builder.FINISH_STATUS_DQ,
+    constants.EVENT_STATUS_DNS: builder.FINISH_STATUS_DNS,
+    constants.EVENT_STATUS_DNF: builder.FINISH_STATUS_DNF,
+    constants.EVENT_STATUS_FINISH: builder.FINISH_STATUS_OK
 }
 
 LEG_IRONMAN_TO_TRISCORE = {
-    parser.SWIM_LEG: builder.SWIM_LEG,
-    parser.T1_LEG: builder.T1_LEG,
-    parser.BIKE_LEG: builder.BIKE_LEG,
-    parser.T2_LEG: builder.T2_LEG,
-    parser.RUN_LEG: builder.RUN_LEG,
-    parser.FINISH_LEG: builder.FINISH_LEG
+    constants.SWIM_LEG: builder.SWIM_LEG,
+    constants.T1_LEG: builder.T1_LEG,
+    constants.BIKE_LEG: builder.BIKE_LEG,
+    constants.T2_LEG: builder.T2_LEG,
+    constants.RUN_LEG: builder.RUN_LEG,
+    constants.FINISH_LEG: builder.FINISH_LEG
 }
 
 
 def get_location_info(race):
-    country_iso = parser.get_country_iso(race)
-    continent = parser.get_continent(race)
-    country = parser.get_country(race)
-    state = parser.get_state_or_province(race)
-    city = parser.get_city(race)
-    return builder.build_location_info(country_iso, continent, country, state, city)
+    country_iso_num = race_parser.get_country_iso_numeric(race)
+    continent = race_parser.get_continent(race)
+    country = race_parser.get_country(race)
+    state = race_parser.get_state_or_province(race)
+    city = race_parser.get_city(race)
+    return builder.build_location_info(country_iso_num, continent, country, state, city)
 
 
 def get_distance_info(race):
-    total_distance = parser.get_distance_in_km(race)
-    swim_type = parser.get_swim_type(race)
-    bike_type = parser.get_bike_type(race)
-    run_type = parser.get_run_type(race)
+    total_distance = race_parser.get_distance_in_km(race)
+    if total_distance is None:
+        total_distance = race_parser.get_distance_by_tri_type(race)
+
+    swim_type = race_parser.get_swim_type(race)
+    bike_type = race_parser.get_bike_type(race)
+    run_type = race_parser.get_run_type(race)
     return builder.build_distance_info(total_distance, swim_type, bike_type, run_type)
 
 
@@ -58,9 +61,9 @@ def get_stats(race_results):
     male_count = 0
     female_count = 0
     for race_result in race_results:
-        success_count += parser.is_finished(race_result)
-        male_count += parser.is_male(race_result)
-        female_count += parser.is_female(race_result)
+        success_count += result_parser.is_finished(race_result)
+        male_count += result_parser.is_male(race_result)
+        female_count += result_parser.is_female(race_result)
 
     return builder.build_stats(
         total=total_count,
@@ -83,7 +86,7 @@ def get_ranks_by_legs(race_results, count_by_age_group, count_by_gender):
     LAST_TIME = '__last_time'
     total_count = len(race_results)
 
-    for leg in parser.LEG_NAMES:
+    for leg in constants.LEG_NAMES:
         min_leg_time = {}
         max_leg_time = {}
 
@@ -94,12 +97,11 @@ def get_ranks_by_legs(race_results, count_by_age_group, count_by_gender):
         logger.debug(f'========= LEG: {leg}')
 
         last_leg_time = 0
-        for i, race_result in enumerate(get_sorted_results(race_results, sort_by=f'{leg}Time')):
-            age = parser.get_age_group(race_result)
-            gender = parser.get_gender(race_result)
-            contact_id = parser.get_contact_id(race_result)
-            leg_time = parser.get_leg_time(race_result, leg)
-            athlete_name = parser.get_athlete_name(race_result)
+        for race_result in get_sorted_results(race_results, sort_by=f'{leg}Time'):
+            age = result_parser.get_age_group(race_result)
+            gender = result_parser.get_gender(race_result)
+            contact_id = result_parser.get_contact_id(race_result)
+            leg_time = result_parser.get_leg_time(race_result, leg)
 
             if age not in min_leg_time:
                 min_leg_time[age] = builder.MAX_TIME
@@ -185,10 +187,10 @@ def get_ranks_by_legs(race_results, count_by_age_group, count_by_gender):
         time_overall_rank[leg] = {}
 
         for race_result in race_results:
-            age = parser.get_age_group(race_result)
-            gender = parser.get_gender(race_result)
-            contact_id = parser.get_contact_id(race_result)
-            leg_time = parser.get_leg_time(race_result, leg)
+            age = result_parser.get_age_group(race_result)
+            gender = result_parser.get_gender(race_result)
+            contact_id = result_parser.get_contact_id(race_result)
+            leg_time = result_parser.get_leg_time(race_result, leg)
             if leg_time != builder.MAX_TIME:
                 time_age_rank[leg][contact_id] = 1.
                 min_age_time = min_leg_time[age]
@@ -231,7 +233,7 @@ def filter_result_duplicates(race_results):
     last_contact_id = ''
     filtered_race_results = []
     for race_result in sorted(race_results, key=lambda result: (result['ContactId'], -result['FinishTime'])):
-        contact_id = parser.get_contact_id(race_result)
+        contact_id = result_parser.get_contact_id(race_result)
         if contact_id == last_contact_id:
             logger.debug(
                 f'filter duplicated result {race_result}')
@@ -248,15 +250,15 @@ def filter_result_duplicates(race_results):
 def fix_undefined_times(race_results):
     for race_result in race_results:
         logger.debug(race_result)
-        athlete_name = parser.get_athlete_name(race_result)
+        athlete_name = result_parser.get_athlete_name(race_result)
 
-        for leg in parser.LEG_NAMES:
-            leg_finish_time = int(parser.get_leg_time(race_result, leg))
+        for leg in constants.LEG_NAMES:
+            leg_finish_time = int(result_parser.get_leg_time(race_result, leg))
 
             set_finish_time_as_max = False
-            if leg == parser.FINISH_LEG:
-                finish_status = parser.get_finish_status(race_result)
-                set_finish_time_as_max = finish_status != parser.EVENT_STATUS_FINISH
+            if leg == constants.FINISH_LEG:
+                finish_status = result_parser.get_finish_status(race_result)
+                set_finish_time_as_max = finish_status != constants.EVENT_STATUS_FINISH
 
             if set_finish_time_as_max or \
                     leg_finish_time <= 0 or \
@@ -269,32 +271,33 @@ def fix_undefined_times(race_results):
     return race_results
 
 
-def publish_ironman_races(mongo_client, start_index, limit, dry_run):
-    ironman_storage = DataStorage(mongo_client=mongo_client, db_name='ironman', collection_name='races')
+def transform_ironman_to_triscore(mongo_client, start_index, limit, dry_run):
+    ironman_races_storage = DataStorage(mongo_client=mongo_client, db_name='ironman', collection_name='races')
 
-    triscore_storage = RaceStorage(mongo_client=mongo_client, db_name='triscore', create_indices=True)
+    triscore_storage = TriscoreStorage(mongo_client=mongo_client, db_name='triscore', create_indices=True)
 
-    ironman_storage = ironman_storage.find(where={DataStorage.INVALID_FIELD: False, DataStorage.PROCESSED_FIELD: True},
-                                       sort=[('Date', 1)],
-                                       skip=start_index,
-                                       limit=limit)
-    count = ironman_storage.count()
+    ironman_races = ironman_races_storage.find(
+        where={DataStorage.INVALID_FIELD: False, DataStorage.PROCESSED_FIELD: True},
+        sort=[('Date', 1)],
+        skip=start_index,
+        limit=limit)
+    count = ironman_races.count()
 
     max_count = -1
-    for i, race in enumerate(ironman_storage):
+    for i, race in enumerate(ironman_races):
         if i == max_count:
             logger.info(f'stopping by max count: {max_count}')
             break
 
-        race_name = parser.get_event_name(race)
-        race_date = parser.get_event_date(race)
-        race_series = parser.get_event_series(race)
-        subevent_id = parser.get_subevent_id(race)
+        race_name = race_parser.get_event_name(race)
+        race_date = race_parser.get_date(race)
+        race_series = race_parser.get_series(race)
+        subevent_id = race_parser.get_subevent_id(race)
 
         logger.info(
             f'{start_index + i + 1}/{count} process race: {race_name} date: {race_date} series: {race_series} id: {subevent_id}')
 
-        race_results_storage = DataStorage(db_name='ironman', collection_name=subevent_id)
+        race_results_storage = DataStorage(mongo_client=mongo_client, db_name='ironman', collection_name=subevent_id)
         race_results = list(race_results_storage.find())
         race_results = filter_result_duplicates(race_results)
         race_results = fix_undefined_times(race_results)
@@ -322,8 +325,8 @@ def publish_ironman_races(mongo_client, start_index, limit, dry_run):
         race_info = builder.build_race_info(
             name=race_series,
             date=race_date,
-            brand=parser.IRONMAN_BRAND,
-            tri_type=parser.get_race_tri_type(race),
+            brand=constants.IRONMAN_BRAND,
+            tri_type=race_parser.get_tri_type(race),
             location_info=location_info,
             distance_info=distance_info,
             stats=race_stats)
@@ -333,14 +336,14 @@ def publish_ironman_races(mongo_client, start_index, limit, dry_run):
         # Rank by leg
         count_by_age_group = {}
         for race_result in race_results:
-            age_group = parser.get_age_group(race_result)
+            age_group = result_parser.get_age_group(race_result)
             if age_group not in count_by_age_group:
                 count_by_age_group[age_group] = 0
             count_by_age_group[age_group] += 1
 
         count_by_gender = {}
         for race_result in race_results:
-            gender = parser.get_gender(race_result)
+            gender = result_parser.get_gender(race_result)
             if gender not in count_by_gender:
                 count_by_gender[gender] = 0
             count_by_gender[gender] += 1
@@ -351,11 +354,11 @@ def publish_ironman_races(mongo_client, start_index, limit, dry_run):
 
         def get_legs(race_result):
             legs = {}
-            for ironman_leg_name in parser.LEG_NAMES:
+            for ironman_leg_name in constants.LEG_NAMES:
                 triscore_leg_name = LEG_IRONMAN_TO_TRISCORE[ironman_leg_name]
-                contact_id = parser.get_contact_id(race_result)
+                contact_id = result_parser.get_contact_id(race_result)
                 legs[triscore_leg_name] = builder.build_leg(
-                    time=parser.get_leg_time(race_result, ironman_leg_name),
+                    time=result_parser.get_leg_time(race_result, ironman_leg_name),
                     age_rank=age_rank[ironman_leg_name][contact_id],
                     gender_rank=gender_rank[ironman_leg_name][contact_id],
                     overall_rank=overall_rank[ironman_leg_name][contact_id],
@@ -378,29 +381,20 @@ def publish_ironman_races(mongo_client, start_index, limit, dry_run):
                        result['BikeTime'],
                        result['Transition2Time'],
                        result['RunTime']))):
-            country_iso2_code = parser.get_country_iso2(result)
-            country = country_resolver.get_country_by_iso2_code_or_none(
-                country_iso2_code)
-            country_fifa_code = country['fifa'] if country else ''
-
-            athlete_id = parser.get_contact_id(result)
-            bib = parser.get_bib_number(result)
-
-            age_group = parser.get_age_group(result)
+            athlete_id = result_parser.get_contact_id(result)
+            athlete_name = result_parser.get_athlete_name(result)
+            country_iso_num = result_parser.get_country_representing_iso_numeric(result)
+            bib = result_parser.get_bib_number(result)
+            age_group = result_parser.get_age_group(result)
             age_group_size = count_by_age_group[age_group]
-
-            gender = parser.get_gender(result)
+            gender = result_parser.get_gender(result)
             gender_size = count_by_gender[gender]
-
             overall_size = len(race_results)
-
-            finish_status = parser.get_finish_status(result, log=True)
+            finish_status = result_parser.get_finish_status(result, log=True)
             status = IRONMAN_EVENT_STATUS_TO_TRISCORE[finish_status]
 
             legs = get_legs(result)
             finish_time = legs[builder.FINISH_LEG]['t']
-
-            athlete_name = parser.get_athlete_name(result)
             finish_rank = legs[builder.FINISH_LEG]['or']
 
             assert finish_time >= last_finish_time, \
@@ -412,7 +406,7 @@ def publish_ironman_races(mongo_client, start_index, limit, dry_run):
             athlete_result = builder.build_athlete_result(
                 athlete_id=athlete_id,
                 athlete_name=athlete_name,
-                country_fifa_code=country_fifa_code,
+                country_iso_num=country_iso_num,
                 bib=bib,
                 age_group=age_group,
                 age_group_size=age_group_size,
@@ -437,17 +431,17 @@ def publish_ironman_races(mongo_client, start_index, limit, dry_run):
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('-d', '--database', default='ironman')
+    parser.add_argument('-d', '--database', default='triscore')
     parser.add_argument('-u', '--username', default='triscore-writer')
     parser.add_argument('-p', '--password', required=True)
-    parser.add_argument('-s', '--start-index', default=0)
-    parser.add_argument('-l', '--limit', default=0)
+    parser.add_argument('-s', '--start-index', type=int, default=0)
+    parser.add_argument('-l', '--limit', type=int, default=0)
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
 
     mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
 
-    publish_ironman_races(mongo_client, args.start_index, args.limit, args.dry_run)
+    transform_ironman_to_triscore(mongo_client, args.start_index, args.limit, args.dry_run)
 
 
 if __name__ == '__main__':

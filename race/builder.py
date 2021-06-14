@@ -9,7 +9,7 @@ FINISH_STATUS_DNS = 'DNS'
 FINISH_STATUS_DNF = 'DNF'
 FINISH_STATUS_OK = 'ok'
 
-MAX_TIME = 99999
+MAX_TIME = 999999
 FLOAT_DECIMALS = 2
 
 SWIM_LEG = 's'
@@ -23,31 +23,41 @@ FINISH_LEG = 'f'
 def build_stats(total, success, male, female):
     success_percent = 100. * success / total
     return {
+        'm': male,
+        'f': female,
         't': total,
         's': success,
         'p': f'{success_percent:.1f}',
-        'm': male,
-        'f': female
     }
 
 
-def build_location_info(country_iso, continent, country, state, city):
-    return {
-        'country_iso': country_iso,
-        'continent': continent,
-        'country': country,
-        'state': state,
-        'city': city,
-    }
+def add_field_if_not_none(result, field, value):
+    if value is None:
+        return
+    result[field] = value
+
+
+def build_location_info(country_iso_num, continent, country, state, city):
+    location_info = {}
+
+    add_field_if_not_none(location_info, 'c', country_iso_num)
+    add_field_if_not_none(location_info, 'continent', continent)
+    add_field_if_not_none(location_info, 'country', country)
+    add_field_if_not_none(location_info, 'state', state)
+    add_field_if_not_none(location_info, 'city', city)
+
+    return location_info
 
 
 def build_distance_info(total_distance, swim_type, bike_type, run_type):
-    return {
-        'td': total_distance,
-        'st': swim_type,
-        'bt': bike_type,
-        'rt': run_type,
-    }
+    distance_info = {}
+
+    add_field_if_not_none(distance_info, 'td', total_distance)
+    add_field_if_not_none(distance_info, 'st', swim_type)
+    add_field_if_not_none(distance_info, 'bt', bike_type)
+    add_field_if_not_none(distance_info, 'rt', run_type)
+
+    return distance_info
 
 
 def build_race_info(name, date, brand, tri_type, location_info, distance_info, stats):
@@ -62,7 +72,7 @@ def build_race_info(name, date, brand, tri_type, location_info, distance_info, s
     }
 
 
-def build_athlete_result(athlete_id, athlete_name, country_fifa_code, bib, status, age_group, age_group_size, gender, gender_size, overall_size, legs):
+def build_athlete_result(athlete_id, athlete_name, country_iso_num, bib, status, age_group, age_group_size, gender, gender_size, overall_size, legs):
     assert len(legs) == 6
 
     inner_legs = {
@@ -72,7 +82,7 @@ def build_athlete_result(athlete_id, athlete_name, country_fifa_code, bib, statu
     return {
         'id': athlete_id,
         'n': athlete_name,
-        'c': country_fifa_code,
+        'c': country_iso_num,
         'b': bib,
         'st': status,
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
 from base import log, dt
-from data.ironman import parser, url
+from data.ironman import url
+from data.ironman.parser import race_parser
 from data.storage import DataStorage
 from pymongo import MongoClient
 
@@ -14,17 +15,17 @@ def data_transformer(item):
 
 
 def is_ironman_full_or_half(race):
-    brand = parser.get_event_brand(race)
+    brand = race_parser.get_brand(race)
     return brand == "IRONMAN" or brand == "IRONMAN 70.3"
 
 
 def is_race(race):
-    subevent_type = parser.get_subevent_type(race)
+    subevent_type = race_parser.get_subevent_type(race)
     return subevent_type == 'Race'
 
 
 def is_date_in_the_past(race):
-    date = parser.get_event_date(race)
+    date = race_parser.get_date(race)
     current_date = dt.date_to_string(dt.now())
     return date < current_date
 
@@ -66,9 +67,10 @@ def load_results(mongo_client):
             where={DataStorage.INVALID_FIELD: False,
                    DataStorage.PROCESSED_FIELD: False},
             sort=[('Date', 1)]):
-        race_name = parser.get_subevent_name(race)
-        subevent_id = parser.get_subevent_id(race)
-        logger.info(f'process race {race_name} subevent_id: {subevent_id}')
+        race_name = race_parser.get_subevent_name(race)
+        race_date = race_parser.get_date(race)
+        subevent_id = race_parser.get_subevent_id(race)
+        logger.info(f'process race {race_name} date: {race_date} subevent_id: {subevent_id}')
 
         results_storage = DataStorage(
             mongo_client, db_name='ironman', collection_name=subevent_id)

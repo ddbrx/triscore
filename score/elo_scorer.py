@@ -7,7 +7,7 @@ import math
 from base import log, utils
 import race.parser as race_parser
 import race.builder as race_builder
-from race.storage import RaceStorage
+from race.storage import TriscoreStorage
 from score.storage import ScoreStorage, MockScoreStorage
 import distribution
 
@@ -307,7 +307,7 @@ def main():
 
     elo_scorer = EloScorer(
         scores_collection=args.scores_collection, prod=args.prod)
-    race_storage = RaceStorage()
+    race_storage = TriscoreStorage()
 
     races = race_storage.get_races(
         skip=args.skip, limit=args.limit, batch_size=10)

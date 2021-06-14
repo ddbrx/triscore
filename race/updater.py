@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from collections import Counter
 
 from base import dt, log, utils
-from race.storage import RaceStorage
+from race.storage import TriscoreStorage
 import race.parser as race_parser
 
 logger = log.setup_logger(__file__, debug=True)
@@ -25,7 +25,7 @@ class Updater:
     def __init__(self, db_name, collection_name, prod):
         self.mongo_client = MongoClient()
         self.matcher_collection = self.mongo_client[db_name][collection_name]
-        self.race_storage = RaceStorage()
+        self.race_storage = TriscoreStorage()
         self.prod = prod
 
     def update(self, skip, limit, prod=False):

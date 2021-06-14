@@ -8,12 +8,12 @@ logger = log.setup_logger(__file__)
 PROCESSED_FIELD = '_processed'
 
 
-class RaceStorage:
+class TriscoreStorage:
     def __init__(self, mongo_client, db_name, create_indices=False):
         self.db = mongo_client[db_name]
         self.races_meta = self.db['meta']
         if create_indices:
-            RaceStorage._create_meta_indices(self.races_meta)
+            TriscoreStorage._create_meta_indices(self.races_meta)
 
     def get_races(self, name='', country='', race_type='', sort_field='date', sort_order=1, skip=0, limit=0, projection={}, batch_size=10):
         projection.update({'_id': 0})
@@ -84,7 +84,7 @@ class RaceStorage:
             info.update({PROCESSED_FIELD: False})
             inserted_id = self.races_meta.insert_one(info).inserted_id
             race_collection = self.db[str(inserted_id)]
-            RaceStorage._create_data_indices(race_collection)
+            TriscoreStorage._create_data_indices(race_collection)
             inserted_ids = race_collection.insert_many(results).inserted_ids
         except Exception as exception:
             logger.error(f'failed to add race: {info} exception: {exception}')
@@ -170,35 +170,28 @@ class RaceStorage:
 
         meta_collection.create_index([
             ('name', 'text'),
-            # ('location.d', 'text'),
-            # ('location.cy', 'text'),
-            # ('location.c', 'text')
+            ('location.continent', 'text'),
+            ('location.country', 'text')
         ])
 
         meta_collection.create_index('date')
         meta_collection.create_index('brand')
         meta_collection.create_index('type')
 
-        # meta_collection.create_index('location.d')
-        # meta_collection.create_index('location.ct')
-        # meta_collection.create_index('location.cy')
-        # meta_collection.create_index('location.c')
+        meta_collection.create_index('location.country_iso')
+        meta_collection.create_index('location.continent')
+        meta_collection.create_index('location.country')
 
-        # meta_collection.create_index('distance.s.d')
-        # meta_collection.create_index('distance.s.t')
-        # meta_collection.create_index('distance.s.e')
-        # meta_collection.create_index('distance.b.d')
-        # meta_collection.create_index('distance.b.s')
-        # meta_collection.create_index('distance.b.e')
-        # meta_collection.create_index('distance.r.d')
-        # meta_collection.create_index('distance.r.s')
-        # meta_collection.create_index('distance.r.e')
+        meta_collection.create_index('distance.td')
+        meta_collection.create_index('distance.st')
+        meta_collection.create_index('distance.bt')
+        meta_collection.create_index('distance.rt')
 
+        meta_collection.create_index('stats.m')
+        meta_collection.create_index('stats.f')
         meta_collection.create_index('stats.t')
         meta_collection.create_index('stats.s')
         meta_collection.create_index('stats.p')
-        meta_collection.create_index('stats.m')
-        meta_collection.create_index('stats.f')
 
     @staticmethod
     def _create_data_indices(data_collection):

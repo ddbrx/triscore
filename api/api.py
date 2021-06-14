@@ -7,7 +7,7 @@ from flask import Blueprint, Flask, request
 from flask_cors import CORS
 
 from base import log
-from race.storage import RaceStorage
+from race.storage import TriscoreStorage
 from score.storage import ScoreStorage
 
 logger = log.setup_logger(__file__)
@@ -38,7 +38,7 @@ def status():
 
 @api_v1.route('/races')
 def races():
-    race_storage = RaceStorage(db_name=RACES_DB)
+    race_storage = TriscoreStorage(db_name=RACES_DB)
 
     logger.info(request.args)
 
@@ -88,7 +88,7 @@ def races():
 
 @api_v1.route('/race-info')
 def race_info():
-    race_storage = RaceStorage()
+    race_storage = TriscoreStorage()
 
     logger.info(request.args)
 
@@ -113,7 +113,7 @@ def race_info():
 def race_results():
     score_storage = ScoreStorage(
         collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
-    race_storage = RaceStorage()
+    race_storage = TriscoreStorage()
 
     logger.info(request.args)
 

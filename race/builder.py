@@ -27,7 +27,7 @@ def build_stats(total, success, male, female):
         'f': female,
         't': total,
         's': success,
-        'p': f'{success_percent:.1f}',
+        'p': round(success_percent, 1),
     }
 
 

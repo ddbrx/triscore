@@ -5,6 +5,7 @@ from base import log, translit
 logger = log.setup_logger(__file__)
 
 
+ID_FIELD = '_id'
 PROCESSED_FIELD = '_processed'
 
 
@@ -16,7 +17,7 @@ class TriscoreStorage:
             TriscoreStorage._create_meta_indices(self.races_meta)
 
     def get_races(self, name='', country='', race_type='', sort_field='date', sort_order=1, skip=0, limit=0, projection={}, batch_size=10):
-        projection.update({'_id': 0})
+        projection.update({ID_FIELD: 0})
         sort = [(sort_field, sort_order)]
 
         query = self._get_athlete_and_country_query(
@@ -40,8 +41,8 @@ class TriscoreStorage:
     def get_race_info(self, race_name, race_date):
         race_meta = self._get_race_meta(name=race_name, date=race_date)
         if race_meta:
-            del race_meta['_id']
-            del race_meta['_processed']
+            del race_meta[ID_FIELD]
+            del race_meta[PROCESSED_FIELD]
             return race_meta
         return {}
 
@@ -55,7 +56,7 @@ class TriscoreStorage:
         race_collection = self.db[race_id]
         query = self._get_athlete_and_country_query(
             athlete_filter, country_filter, age_group_filter=age_group_filter, country_field='c')
-        projection = {'_id': 0}
+        projection = {ID_FIELD: 0}
         sort = [(sort_field, sort_order)]
         return race_collection.find(
             query,
@@ -99,7 +100,7 @@ class TriscoreStorage:
             return False
 
         logger.info(f'remove race meta {name} {date} {race_id}')
-        self.races_meta.remove({'_id': ObjectId(race_id)})
+        self.races_meta.remove({ID_FIELD: ObjectId(race_id)})
         logger.info(f'drop race data {race_id}')
         self.db[race_id].drop()
         return True
@@ -158,7 +159,7 @@ class TriscoreStorage:
 
     def _get_race_id(self, name, date):
         race_meta = self._get_race_meta(name, date)
-        return str(race_meta['_id']) if race_meta else None
+        return str(race_meta[ID_FIELD]) if race_meta else None
 
     def _get_race_meta(self, name, date):
         return self.races_meta.find_one({'name': name, 'date': date})

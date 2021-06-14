@@ -21,6 +21,15 @@ db.createUser(
 use triscore
 db.createUser(
   {
+    user: "triscore-owner",
+    pwd:  passwordPrompt(),
+    roles: [ { role: "dbOwner", db: "triscore" } ]
+  }
+)
+
+use triscore
+db.createUser(
+  {
     user: "triscore-writer",
     pwd:  passwordPrompt(),
     roles: [ { role: "readWrite", db: "triscore" }, { role: "read", db: "ironman" } ]

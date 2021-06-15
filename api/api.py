@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import argparse
-import json
-import time
 
 from flask import Blueprint, Flask, request
 from flask_cors import CORS
+
+from pymongo import MongoClient
 
 from base import log
 from race.storage import RaceStorage
@@ -17,10 +17,8 @@ api_v1 = Blueprint('api_v1', __name__, template_folder='templates_v1')
 MAX_ITEMS_LIMIT = 100
 RACES_BATCH_SIZE = 101
 
-RACES_DB = 'races'
-
-SCORES_DB = 'triscore'
-SCORES_COLLECTION = 'scores'
+TRISCORE_DB = 'triscore'
+SCORES_COLLECTION = 'athletes'
 
 
 def add_rel_index(iterable, start_index):
@@ -38,7 +36,7 @@ def status():
 
 @api_v1.route('/races')
 def races():
-    race_storage = RaceStorage(db_name=RACES_DB)
+    race_storage = RaceStorage(mongo_client=mongo_client, db_name=TRISCORE_DB)
 
     logger.info(request.args)
 
@@ -88,7 +86,7 @@ def races():
 
 @api_v1.route('/race-info')
 def race_info():
-    race_storage = RaceStorage()
+    race_storage = RaceStorage(mongo_client=mongo_client, db_name=TRISCORE_DB)
 
     logger.info(request.args)
 
@@ -112,8 +110,8 @@ def race_info():
 @api_v1.route('/race-results')
 def race_results():
     score_storage = AthleteStorage(
-        collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
-    race_storage = RaceStorage()
+        collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
+    race_storage = RaceStorage(mongo_client=mongo_client, db_name=TRISCORE_DB)
 
     logger.info(request.args)
 
@@ -171,7 +169,7 @@ def race_results():
 @api_v1.route('/athletes')
 def athletes():
     score_storage = AthleteStorage(
-        collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
+        mongo_client=mongo_client, collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
 
     logger.info(request.args)
 
@@ -217,7 +215,7 @@ def athletes():
 @api_v1.route('/athlete-details')
 def athlete_details():
     score_storage = AthleteStorage(
-        collection_name=SCORES_COLLECTION, dbname=SCORES_DB)
+        mongo_client=mongo_client, collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
     athlete_id = request.args.get('id')
     logger.info(f'athlete_id: {athlete_id}')
     athlete = score_storage.get_athlete(athlete_id=athlete_id)
@@ -228,9 +226,23 @@ def athlete_details():
     return data, 200
 
 
-app = Flask(__name__)
-app.register_blueprint(api_v1, url_prefix='/api/v1')
-CORS(app)
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-d', '--database', default='triscore')
+    parser.add_argument('-u', '--username', default='triscore-reader')
+    parser.add_argument('-p', '--password', required=True)
+
+    args = parser.parse_args()
+
+    global mongo_client
+    mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
+
+    app = Flask(__name__)
+    app.register_blueprint(api_v1, url_prefix='/api/v1')
+    CORS(app)
+    app.run(host='0.0.0.0')
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    main()

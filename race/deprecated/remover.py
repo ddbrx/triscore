@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 from base import log
-from race.storage import TriscoreStorage
+from race.storage import RaceStorage
 
 logger = log.setup_logger(__file__, debug=True)
 
 
 def remove_race(db_name, race_name, race_date):
-    race_storage = TriscoreStorage(dbname=db_name)
+    race_storage = RaceStorage(dbname=db_name)
     try:
         race_storage.remove_race(name=race_name, date=race_date)
     except Exception as exception:

@@ -1,4 +1,4 @@
-from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo import ASCENDING, DESCENDING
 from base import log, translit
 
 
@@ -7,14 +7,13 @@ logger = log.setup_logger(__file__, debug=True)
 NO_LIMIT = 1000 * 1000 * 1000
 
 
-class ScoreStorage:
-    def __init__(self, collection_name='scores', dbname='triscore', create_indices=False):
-        self.mongo_client = MongoClient()
-        self.scores_collection = self.mongo_client[dbname][collection_name]
+class AthleteStorage:
+    def __init__(self, mongo_client,  db_name='triscore', collection_name='athletes', create_indices=False):
+        self.scores_collection = mongo_client[db_name][collection_name]
         if create_indices:
             self._create_indices()
 
-    def get_top_athletes(self, name='', country='', age_group='', sort_field='s', sort_order=DESCENDING, skip=0, limit=0):
+    def get_top_athletes(self, name='', country='', age_group='', sort_field='s', sort_order=DESCENDING, skip=0, limit=0, batch_size=10):
         projection = {'_id': 0, 'h': 0, 'prefixes': 0}
         sort = [(sort_field, sort_order)]
 
@@ -50,7 +49,8 @@ class ScoreStorage:
         return self.scores_collection.find(
             query,
             sort=sort,
-            projection=projection
+            projection=projection,
+            batch_size=batch_size
         ).skip(skip).limit(limit)
 
     def get_athlete(self, athlete_id, projection={}):
@@ -157,7 +157,7 @@ class ScoreStorage:
         #     [('c', DESCENDING), ('s', DESCENDING)])
 
 
-class MockScoreStorage:
+class MockAthleteStorage:
     def __init__(self):
         self.athlete_by_id = {}
 
@@ -198,4 +198,4 @@ class MockScoreStorage:
         self.athlete_by_id[athlete_id]['p'] = race_summary['index']
         self.athlete_by_id[athlete_id]['a'] = race_summary['a']
         self.athlete_by_id[athlete_id]['c'] = race_summary['c']
-        self.athlete_by_id[athlete_id]['h'].append(race_summary)
+        # self.athlete_by_id[athlete_id]['h'].append(race_summary)

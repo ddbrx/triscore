@@ -1,5 +1,4 @@
 from bson import ObjectId
-from pymongo import MongoClient
 from base import log, translit
 
 logger = log.setup_logger(__file__)
@@ -9,12 +8,12 @@ ID_FIELD = '_id'
 PROCESSED_FIELD = '_processed'
 
 
-class TriscoreStorage:
+class RaceStorage:
     def __init__(self, mongo_client, db_name, create_indices=False):
         self.db = mongo_client[db_name]
         self.races_meta = self.db['meta']
         if create_indices:
-            TriscoreStorage._create_meta_indices(self.races_meta)
+            RaceStorage._create_meta_indices(self.races_meta)
 
     def get_races(self, name='', country='', race_type='', sort_field='date', sort_order=1, skip=0, limit=0, projection={}, batch_size=10):
         projection.update({ID_FIELD: 0})
@@ -86,7 +85,7 @@ class TriscoreStorage:
             info.update({PROCESSED_FIELD: False})
             inserted_id = self.races_meta.insert_one(info).inserted_id
             race_collection = self.db[str(inserted_id)]
-            TriscoreStorage._create_data_indices(race_collection)
+            RaceStorage._create_data_indices(race_collection)
             inserted_ids = race_collection.insert_many(results).inserted_ids
             if len(inserted_ids) == len(results):
                 self.set_race_processed(race_name, race_date)

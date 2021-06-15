@@ -3,7 +3,7 @@ import argparse
 import bisect
 
 from base import log
-from score.storage import ScoreStorage
+from athlete.storage import AthleteStorage
 
 
 logger = log.setup_logger(__file__)
@@ -88,7 +88,7 @@ def main():
 
     logger.info('args: {}'.format(args))
 
-    score_storage = ScoreStorage()
+    score_storage = AthleteStorage()
     athletes = score_storage.get_top_athletes(
         country=args.country, limit=args.limit)
     # gen_distribution_by_score(athletes)

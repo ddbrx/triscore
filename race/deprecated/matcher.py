@@ -3,7 +3,7 @@ import argparse
 from pymongo import MongoClient
 
 from base import dt, log, utils
-from race.storage import TriscoreStorage
+from race.storage import RaceStorage
 import race.parser as race_parser
 
 logger = log.setup_logger(__file__, debug=True)
@@ -109,7 +109,7 @@ def main():
 
     args = parser.parse_args()
 
-    race_storage = TriscoreStorage()
+    race_storage = RaceStorage()
     races = race_storage.get_races(skip=args.skip, limit=args.limit)
     count = races.count()
 
@@ -117,7 +117,7 @@ def main():
     for i, race_info in enumerate(races):
         race_name = race_parser.get_race_name(race_info)
         race_date = race_parser.get_race_date(race_info)
-        race_country = race_parser.get_race_fifa_code(race_info)
+        race_country = race_parser.get_race_country_iso_num(race_info)
 
         race_results = race_storage.get_race_results(race_name, race_date)
 

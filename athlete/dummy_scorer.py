@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from base import log, utils
 import race.parser as race_parser
-from race.storage import TriscoreStorage
+from race.storage import RaceStorage
 
 logger = log.setup_logger(__file__)
 
@@ -29,7 +29,7 @@ def get_profile_to_score(results):
 
 
 def main():
-    race_storage = TriscoreStorage()
+    race_storage = RaceStorage()
 
     athlete_id_to_scores = {}
     max_count = -1

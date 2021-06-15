@@ -7,7 +7,7 @@ from data.ironman.parser import constants, race_parser, result_parser
 from decimal import *
 from pymongo import MongoClient
 from race import builder
-from race.storage import TriscoreStorage
+from race.storage import RaceStorage
 
 
 logger = log.setup_logger(__file__, debug=False)
@@ -274,7 +274,7 @@ def fix_undefined_times(race_results):
 def transform_ironman_to_triscore(mongo_client, limit, dry_run):
     ironman_races_storage = DataStorage(mongo_client=mongo_client, db_name='ironman', collection_name='races')
 
-    triscore_storage = TriscoreStorage(mongo_client=mongo_client, db_name='triscore', create_indices=True)
+    triscore_storage = RaceStorage(mongo_client=mongo_client, db_name='triscore', create_indices=True)
 
     ironman_races = ironman_races_storage.find(
         where={DataStorage.INVALID_FIELD: False, DataStorage.PROCESSED_FIELD: True},

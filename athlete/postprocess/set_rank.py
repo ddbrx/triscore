@@ -3,14 +3,14 @@ import json
 import os
 
 from base import log, utils
-from score.storage import ScoreStorage
+from athlete.storage import AthleteStorage
 
 logger = log.setup_logger(__file__)
 
 TRISCORE_DB = 'triscore'
 
 def main():
-    score_storage = ScoreStorage()
+    score_storage = AthleteStorage()
     athletes = score_storage.get_top_athletes()
     count = athletes.count()
     rank = 0

@@ -18,8 +18,13 @@ def get_race_type(race):
     return race['type']
 
 
-def get_race_fifa_code(race):
-    return race['location']['c']
+def get_race_country_iso_num(race, default=0):
+    location_info = race['location']
+    return location_info['c'] if 'c' in location_info else default
+
+
+def get_result_country_iso_num(result):
+    return result['c']
 
 
 def get_athlete_id(result):
@@ -29,10 +34,6 @@ def get_athlete_id(result):
 def get_athlete_name(result):
     n = result['n']
     return n if n else ''
-
-
-def get_country_fifa_code(result):
-    return result['c']
 
 
 def get_bib(result):

@@ -13,13 +13,13 @@ class AthleteStorage:
         if create_indices:
             self._create_indices()
 
-    def get_top_athletes(self, name='', country='', age_group='', sort_field='s', sort_order=DESCENDING, skip=0, limit=0, batch_size=10):
+    def get_top_athletes(self, name='', country=None, age_group='', sort_field='s', sort_order=DESCENDING, skip=0, limit=0, batch_size=10):
         projection = {'_id': 0, 'h': 0, 'prefixes': 0}
         sort = [(sort_field, sort_order)]
 
         where = {}
-        if country and country.strip():
-            where['c'] = country.strip()
+        if country:
+            where['c'] = int(country)
 
         if age_group and age_group.strip():
             where['a'] = age_group.strip()

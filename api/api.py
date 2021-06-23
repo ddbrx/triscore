@@ -110,7 +110,7 @@ def race_info():
 @api_v1.route('/race-results')
 def race_results():
     score_storage = AthleteStorage(
-        collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
+        mongo_client=mongo_client, collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
     race_storage = RaceStorage(mongo_client=mongo_client, db_name=TRISCORE_DB)
 
     logger.info(request.args)

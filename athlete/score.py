@@ -17,49 +17,50 @@ START_SCORE = 1500
 MIN_GROUP_SIZE = 10
 
 
-def print_distribution(elo_scorer:EloScorer, log_file, index=None):
-    top_athletes = elo_scorer.get_top_athletes()
-    filename = os.path.basename(log_file) + (f'.{index}' if index else '')
+def print_distribution(elo_scorer:EloScorer, log_dir, index=None, extension='.txt'):
+    os.makedirs(log_dir, exist_ok=True)
+    filename = (f'{index}' if index else 'total') + extension
+    filepath = os.path.join(log_dir, filename)
 
-    dir = os.path.join(os.path.dirname(log_file),
-                        os.path.splitext(os.path.basename(log_file))[0])
-    os.makedirs(dir, exist_ok=True)
+    # top_athletes = elo_scorer.get_top_athletes()
 
-    file = os.path.join(dir, filename)
-    logger.info(f'flushing stats to {file}')
-    with open(file, 'w') as f:
-        if index:
-            f.write(f'distribution #{index}\n')
-        else:
-            f.write('distribution total\n')
+    logger.info(f'flushing stats to {filepath}')
+    with open(filepath, 'w') as f:
+        # if index:
+        #     f.write(f'distribution #{index}\n')
+        # else:
+        #     f.write('distribution total\n')
 
-        for line in distribution.gen_chunks_distribution(top_athletes):
-            f.write(line + '\n')
+        # for line in distribution.gen_chunks_distribution(top_athletes):
+        #     f.write(line + '\n')
 
-        f.write('\n----\n')
+        # f.write('\n----\n')
 
-        for line in distribution.gen_distribution_by_score(top_athletes):
-            f.write(line + '\n')
+        # for line in distribution.gen_distribution_by_score(top_athletes):
+        #     f.write(line + '\n')
 
         f.write('top 100\n')
-        top_100_athletes = list(top_athletes)[0:100]
-        for i, line in enumerate(utils.gen_dicts(top_100_athletes, lj=30, filter_keys=['id', 'h', 'g'])):
+        FILTER_KEYS = ['id', 'h', 'g', 'c']
+        DISPLAY_KEYS = ['date', 'type', 'a', 'as', 'ar', 'st', 'ns', 'da', 'eas', 'ear', 'etr', 'esr']
+        top_100_athletes = list(elo_scorer.get_top_athletes(sort_order=-1, limit=100, with_history=True))
+        logger.info(f'top_100_athletes: {top_100_athletes}')
+        for i, line in enumerate(utils.gen_dicts(top_100_athletes, lj=30, filter_keys=FILTER_KEYS)):
             f.write(line + '\n')
             if i == 0:
                 continue
 
-            for hline in utils.gen_dicts(list(top_100_athletes[i - 1]['h']), lj=10):
-                f.write(hline + '\n')
+            for hline in utils.gen_dicts(list(reversed(top_100_athletes[i - 1]['h'])), lj=10, display_keys=DISPLAY_KEYS, display_header=True):
+                f.write('  ' + hline + '\n')
 
         f.write('last 100\n')
-        last_100_athletes = list(top_athletes)[-100:]
-        for i, line in enumerate(utils.gen_dicts(last_100_athletes, lj=30, filter_keys=['id', 'h', 'g'])):
+        last_100_athletes = list(elo_scorer.get_top_athletes(sort_order=1, limit=100, with_history=True))
+        for i, line in enumerate(utils.gen_dicts(last_100_athletes, lj=30, filter_keys=FILTER_KEYS)):
             f.write(line + '\n')
             if i == 0:
                 continue
 
-            for hline in utils.gen_dicts(list(last_100_athletes[i - 1]['h']), lj=10):
-                f.write(hline + '\n')
+            for hline in utils.gen_dicts(list(reversed(last_100_athletes[i - 1]['h'])), lj=10, display_keys=DISPLAY_KEYS, display_header=True):
+                f.write('  ' + hline + '\n')
 
 def main():
     logger.info('starting elo scorer')
@@ -72,24 +73,21 @@ def main():
 
     parser.add_argument('--skip', type=int, default=0)
     parser.add_argument('--limit', type=int, default=0)
-    parser.add_argument('--log-file', required=True)
-
-    parser.add_argument('--A', type=int, default=6)
-    parser.add_argument('--B', type=int, default=12)
-    parser.add_argument('--C', type=int, default=3)
+    parser.add_argument('--log-dir', default='/tmp/score')
 
     parser.add_argument('--dry-run', action='store_true')
 
     args = parser.parse_args()
 
-    mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
+    mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database, connect=False)
+
     if args.dry_run:
         athlete_storage = MockAthleteStorage()
     else:
         athlete_storage = \
                 AthleteStorage(mongo_client=mongo_client, collection_name='athletes', create_indices=True)
 
-    elo_scorer = EloScorer(athlete_storage, args.A, args.B, args.C)
+    elo_scorer = EloScorer(athlete_storage)
     race_storage = RaceStorage(mongo_client=mongo_client, db_name='triscore')
 
     races = race_storage.get_races(skip=args.skip, limit=args.limit)
@@ -103,10 +101,10 @@ def main():
         race_results = race_storage.get_race_results(race_name=race_name, race_date=race_date)
         elo_scorer.add_race(race_info, race_results)
 
-        if (args.skip + i + 1) % 100 == 0:
-            print_distribution(elo_scorer, args.log_file, i + 1)
+        if (args.skip + i) == 0 or (args.skip + i + 1) % 100 == 0:
+            print_distribution(elo_scorer, args.log_dir, i + 1)
 
-    print_distribution(elo_scorer, args.log_file,)
+    print_distribution(elo_scorer, args.log_dir)
 
 
 if __name__ == '__main__':

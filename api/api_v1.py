@@ -1,18 +1,11 @@
-#!/usr/bin/env python3
-import argparse
-
-from flask import Blueprint, Flask, request
-from flask_cors import CORS
-
+# import argparse
+from flask import Blueprint, request
 from pymongo import MongoClient
 
 from base import log
 from race.storage import RaceStorage
 from athlete.storage import AthleteStorage
 
-logger = log.setup_logger(__file__)
-
-api_v1 = Blueprint('api_v1', __name__, template_folder='templates_v1')
 
 MAX_ITEMS_LIMIT = 100
 RACES_BATCH_SIZE = 101
@@ -21,12 +14,24 @@ TRISCORE_DB = 'triscore'
 SCORES_COLLECTION = 'athletes'
 
 
-def add_rel_index(iterable, start_index):
-    items = []
-    for i, item in enumerate(iterable):
-        item['i'] = start_index + i
-        items.append(item)
-    return items
+logger = log.setup_logger(__file__)
+
+api_v1 = Blueprint('api_v1', __name__, template_folder='templates_v1')
+
+# parser = argparse.ArgumentParser()
+
+# parser.add_argument('-d', '--database', default='triscore')
+# parser.add_argument('-u', '--username', default='triscore-reader')
+# parser.add_argument('-p', '--password', default='-p 4c)H0TLDF>kH')
+# parser.add_argument('-p', '--password', required=True)
+
+# args = parser.parse_args()
+
+# global mongo_client
+# mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
+
+def get_mongo_client():
+    return MongoClient(authSource='triscore', username='triscore-reader', password='4c)H0TLDF>kH', connect=False)
 
 
 @api_v1.route('/status')
@@ -36,7 +41,7 @@ def status():
 
 @api_v1.route('/races')
 def races():
-    race_storage = RaceStorage(mongo_client=mongo_client, db_name=TRISCORE_DB)
+    race_storage = RaceStorage(mongo_client=get_mongo_client(), db_name=TRISCORE_DB)
 
     logger.info(request.args)
 
@@ -86,7 +91,7 @@ def races():
 
 @api_v1.route('/race-info')
 def race_info():
-    race_storage = RaceStorage(mongo_client=mongo_client, db_name=TRISCORE_DB)
+    race_storage = RaceStorage(mongo_client=get_mongo_client(), db_name=TRISCORE_DB)
 
     logger.info(request.args)
 
@@ -110,8 +115,8 @@ def race_info():
 @api_v1.route('/race-results')
 def race_results():
     score_storage = AthleteStorage(
-        mongo_client=mongo_client, collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
-    race_storage = RaceStorage(mongo_client=mongo_client, db_name=TRISCORE_DB)
+        mongo_client=get_mongo_client(), collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
+    race_storage = RaceStorage(mongo_client=get_mongo_client(), db_name=TRISCORE_DB)
 
     logger.info(request.args)
 
@@ -169,7 +174,7 @@ def race_results():
 @api_v1.route('/athletes')
 def athletes():
     score_storage = AthleteStorage(
-        mongo_client=mongo_client, collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
+        mongo_client=get_mongo_client(), collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
 
     logger.info(request.args)
 
@@ -203,6 +208,13 @@ def athletes():
         skip=index_from,
         limit=limit)
 
+    def add_rel_index(iterable, start_index):
+        items = []
+        for i, item in enumerate(iterable):
+            item['i'] = start_index + i
+            items.append(item)
+        return items
+
     athletes = add_rel_index(cursor, start_index=index_from + 1)
     total_count = cursor.count(with_limit_and_skip=False)
     data = {
@@ -215,7 +227,7 @@ def athletes():
 @api_v1.route('/athlete-details')
 def athlete_details():
     score_storage = AthleteStorage(
-        mongo_client=mongo_client, collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
+        mongo_client=get_mongo_client(), collection_name=SCORES_COLLECTION, db_name=TRISCORE_DB)
     athlete_id = request.args.get('id')
     logger.info(f'athlete_id: {athlete_id}')
     athlete = score_storage.get_athlete(athlete_id=athlete_id)
@@ -224,25 +236,3 @@ def athlete_details():
         'total': 1
     }
     return data, 200
-
-
-def main():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('-d', '--database', default='triscore')
-    parser.add_argument('-u', '--username', default='triscore-reader')
-    parser.add_argument('-p', '--password', required=True)
-
-    args = parser.parse_args()
-
-    global mongo_client
-    mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
-
-    app = Flask(__name__)
-    app.register_blueprint(api_v1, url_prefix='/api/v1')
-    CORS(app)
-    app.run(host='0.0.0.0')
-
-
-if __name__ == '__main__':
-    main()

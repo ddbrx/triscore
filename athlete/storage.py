@@ -13,8 +13,11 @@ class AthleteStorage:
         if create_indices:
             self._create_indices()
 
-    def get_top_athletes(self, name='', country=None, age_group='', sort_field='s', sort_order=DESCENDING, skip=0, limit=0, batch_size=10):
-        projection = {'_id': 0, 'h': 0, 'prefixes': 0}
+    def get_top_athletes(self, name='', country=None, age_group='', sort_field='s', sort_order=DESCENDING, skip=0, limit=0, batch_size=10, with_history=False):
+        projection = {'_id': 0, 'prefixes': 0}
+        if not with_history:
+             projection['h'] = 0
+    
         sort = [(sort_field, sort_order)]
 
         where = {}
@@ -197,5 +200,6 @@ class MockAthleteStorage:
         self.athlete_by_id[athlete_id]['s'] = race_summary['ns']
         self.athlete_by_id[athlete_id]['p'] = race_summary['index']
         self.athlete_by_id[athlete_id]['a'] = race_summary['a']
-        self.athlete_by_id[athlete_id]['c'] = race_summary['c']
-        # self.athlete_by_id[athlete_id]['h'].append(race_summary)
+        # TODO: uncomment
+        # self.athlete_by_id[athlete_id]['c'] = race_summary['c']
+        self.athlete_by_id[athlete_id]['h'].append(race_summary)

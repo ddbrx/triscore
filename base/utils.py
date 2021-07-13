@@ -3,14 +3,16 @@ def print_dicts(ds, lj=20, filter_keys=[]):
         print(line)
 
 
-def gen_dicts(ds, lj=20, filter_keys=[]):
+def gen_dicts(ds, lj=20, filter_keys=[], display_keys=[], display_header=True):
     if len(ds) == 0:
         return
 
-    header = ''
-    keys = list(filter(lambda x: x not in filter_keys, ds[0].keys()))
-    header = ' '.join([key.ljust(lj) for key in keys])
-    yield header
+    keys = list(filter(lambda x: (x in display_keys if len(display_keys) > 0 else x not in filter_keys), ds[0].keys()))
+
+    if display_header:
+        header = ''
+        header = ' '.join([key.ljust(lj) for key in keys])
+        yield header
 
     def get_rounded_value(value):
         if isinstance(value, float):
@@ -22,7 +24,6 @@ def gen_dicts(ds, lj=20, filter_keys=[]):
         line = ' '.join([str(get_rounded_value(value)).ljust(lj)
                          for value in values])
         yield line
-
 
 def get_subsentences(sentence):
     words = sentence.strip().split()

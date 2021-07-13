@@ -29,7 +29,7 @@ def gen_distribution_by_score(athletes):
 
         if index != prev_index:
             median_races = sorted(races)[int(len(races) / 2)]
-            yield f'[{(index + 1) * 100}, {(index + 2)*100}) count: {count} races: {median_races}'
+            yield f'[{(index + 1) * 100}, {(index + 2)*100}) count: {count} median races: {median_races}'
             races = []
             count = 0
             prev_index = index
@@ -61,7 +61,7 @@ def gen_chunks_distribution(athletes, chunks=DEFAULT_CHUNKS):
         lv = chunks[index]
         rv = chunks[index + 1] if (index + 1) < len(chunks) else '+inf'
 
-        return f'[{lv}, {rv}) count: {count} races: {median_races}'
+        return f'[{lv}, {rv}) count: {count} races median: {median_races}'
 
     for score, race_count in get_score_and_race_count(athletes):
         index = bisect.bisect_left(chunks, score) - 1

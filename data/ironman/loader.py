@@ -5,6 +5,7 @@ from data.ironman import url
 from data.ironman.parser import race_parser
 from data.storage import DataStorage
 from pymongo import MongoClient
+import time
 
 
 logger = log.setup_logger(__file__, debug=False)
@@ -99,12 +100,27 @@ def main():
     parser.add_argument('-d', '--database', default='ironman')
     parser.add_argument('-u', '--username', default='data-loader')
     parser.add_argument('-p', '--password', required=True)
+    parser.add_argument('-t', '--timeout', type=int, default=None)
     args = parser.parse_args()
 
     mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
 
-    load_races(mongo_client)
-    load_results(mongo_client)
+    def load_data():
+        load_races(mongo_client)
+        load_results(mongo_client)
+
+    if args.timeout is None:
+        load_data()
+        return
+
+
+    def sleep(timeout):
+        logger.info(f'sleeping {timeout} sec')
+        time.sleep(args.timeout)
+
+    while True:
+        load_data()
+        sleep(args.timeout)
 
 
 if __name__ == '__main__':

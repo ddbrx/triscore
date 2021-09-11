@@ -1,0 +1,16 @@
+[Unit]
+Description=uWSGI Triscore API
+After=syslog.target
+
+[Service]
+ExecStart=/usr/bin/uwsgi --ini /home/triscore/triscore/api/config/uwsgi/prod-regru.ini
+# Requires systemd version 211 or newer
+RuntimeDirectory=uwsgi
+Restart=always
+KillSignal=SIGQUIT
+Type=notify
+StandardError=syslog
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target

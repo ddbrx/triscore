@@ -3,7 +3,7 @@ import json
 import os
 
 from base import log, utils
-from athlete.storage import AthleteStorage
+from score.storage import AthleteStorage
 
 logger = log.setup_logger(__file__)
 

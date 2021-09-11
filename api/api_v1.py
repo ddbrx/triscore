@@ -4,7 +4,7 @@ from pymongo import MongoClient
 
 from base import log
 from race.storage import RaceStorage
-from athlete.storage import AthleteStorage
+from score.storage import AthleteStorage
 
 
 MAX_ITEMS_LIMIT = 100

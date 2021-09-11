@@ -3,7 +3,7 @@ import argparse
 import bisect
 
 from base import log
-from athlete.storage import AthleteStorage
+from score.storage import AthleteStorage
 
 
 logger = log.setup_logger(__file__)

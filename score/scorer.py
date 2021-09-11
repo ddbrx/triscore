@@ -6,9 +6,9 @@ from pymongo import MongoClient
 from base import log, utils
 import race.parser as race_parser
 from race.storage import RaceStorage
-from athlete.storage import AthleteStorage, MockAthleteStorage
-from athlete.elo_scorer import EloScorer
-import athlete.distribution as distribution
+from score.storage import AthleteStorage, MockAthleteStorage
+from score.elo_scorer import EloScorer
+# import score.distribution as distribution
 
 
 logger = log.setup_logger(__file__, debug=False)

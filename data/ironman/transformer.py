@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
-from base import log
+from base import dt, log
 from base.location.resolver import LocationResolver
 from data.storage import DataStorage
 from data.ironman.parser import constants, race_parser, result_parser
@@ -282,6 +282,8 @@ def transform_ironman_to_triscore(mongo_client, limit, dry_run):
         limit=limit)
     count = ironman_races.count()
 
+    logger.info(f'{count} new races found')
+
     max_count = -1
     for i, race in enumerate(ironman_races):
         if i == max_count:
@@ -435,12 +437,16 @@ def main():
     parser.add_argument('-u', '--username', default='triscore-writer')
     parser.add_argument('-p', '--password', required=True)
     parser.add_argument('-l', '--limit', type=int, default=0)
+    parser.add_argument('-t', '--timeout', type=int, default=None)
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
 
     mongo_client = MongoClient(username=args.username, password=args.password, authSource=args.database)
 
-    transform_ironman_to_triscore(mongo_client, args.limit, args.dry_run)
+    while True:
+        transform_ironman_to_triscore(mongo_client, args.limit, args.dry_run)
+        if not dt.wait(args.timeout):
+            break
 
 
 if __name__ == '__main__':

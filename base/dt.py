@@ -1,5 +1,7 @@
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import time
+
 
 min = datetime.min
 max = datetime.max
@@ -30,3 +32,11 @@ def date_to_string(d, format=DATE_FORMAT):
 
 def delta(dt, years=0, days=0):
     return dt + relativedelta(years=years, days=days)
+
+
+def wait(timeout):
+    if timeout is None:
+        return False
+
+    time.sleep(timeout)
+    return True
